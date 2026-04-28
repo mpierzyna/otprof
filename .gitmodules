@@ -1,0 +1,3 @@
+[submodule "submodules/wrf-massive"]
+	path = submodules/wrf-massive
+	url = git@github.com:mpierzyna/wrf-massive.git
