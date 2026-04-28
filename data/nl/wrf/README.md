@@ -1,0 +1,1 @@
+Workspace to generate 1-year of WRF data for the Netherlands using [`wrf_massive`](https://github.com/mpierzyna/wrf-massive).

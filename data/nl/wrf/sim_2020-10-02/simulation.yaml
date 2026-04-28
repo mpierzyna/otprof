@@ -1,0 +1,12 @@
+begin: 2020-10-02 00:00:00
+end: 2020-10-07 00:00:00
+settings:
+  physics__bl_mynn_closure: '2.5'
+  physics__bl_mynn_edmf: '0'
+  physics__bl_mynn_edmf_mom: '0'
+  physics__bl_mynn_edmf_tke: '0'
+  physics__bl_mynn_mixlength: '1'
+  physics__bl_pbl_physics: '5'
+  physics__sf_sfclay_physics: '5'
+  physics__sf_urban_physics: '0'
+warmup_h: 12

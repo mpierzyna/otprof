@@ -1,0 +1,9 @@
+# Git ignore for WPS dir
+*
+!.gitignore
+!namelist.wps
+!namelist.wps.CERRA
+!namelist.wps.ERA5
+!Vtable*
+!setup_wps.sh
+!run_wps.sh
