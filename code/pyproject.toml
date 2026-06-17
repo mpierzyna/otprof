@@ -1,0 +1,35 @@
+[project]
+name = "otprof"
+version = "0.1.0"
+description = "Deep Learning Single Column Model for Cn2 (standalone publication extract)"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "numpy==2.3.*",
+    "scipy==1.16.*",
+    "torch==2.8.*",
+    "lightning==2.5.*",
+    "xarray==2025.8.*",
+    "dask==2025.9.*",
+    "pandas==2.2.*",
+    "netcdf4==1.7.*",
+    "h5netcdf==1.6.*",
+    "matplotlib==3.10.*",
+    "seaborn==0.13.*",
+    "pydantic==2.11.*",
+    "cartopy>=0.25.0",
+    "plotly>=6.5.2",
+    "jax>=0.9.0",
+    "joblib>=1.5.3",
+    "scikit-learn==1.7.*",
+    "tensorboardx>=2.6.4",
+    # vendored research_tools dependencies
+    "jinja2>=3.1",
+    "pyyaml>=6.0",
+    "isodate>=0.7",
+]
+
+[tool.setuptools]
+# This extract is meant to be run in place (scripts import sibling modules /
+# packages directly); no installable package layout is required.
+py-modules = []
