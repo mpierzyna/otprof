@@ -1,7 +1,8 @@
-# OTProf: 
+# OTProf Deep-Learning Pipeline
 
-This is a standalone extract of the Squeezeformer model used to predict optical-turbulence (Cn²) profiles from 
-coarse atmospheric state. It bundles the model/training/analysis code, the supporting `otprof` package.
+This is a standalone extract of the Squeezeformer model used to predict optical-turbulence (Cn²) profiles from coarse atmospheric state. It bundles the model/training/analysis code, and the supporting `otprof` package.
+
+The data and trained model checkpoints are available on [Zenodo](https://zenodo.org/records/20733692) and need to be downloaded manually.
 
 ## Layout
 
@@ -91,16 +92,4 @@ datasets above must be present.
 ## Data
 
 The datasets are NetCDF files covering 2017–2020 (2019–2020 train, 2018
-validation, 2017 test). They are renamed/flattened copies of the original
-pipeline outputs:
-
-| published file   | original source                              |
-| ---------------- | -------------------------------------------- |
-| `wrf_highres.nc` | `3_features/wrf_filtered.nc`                 |
-| `wrf_lowres.nc`  | `4_features_interp/wrf_filtered_era5pl.nc`   |
-| `era5_pl.nc`     | `3_features/era5_pl.nc`                       |
-| `era5_sfc.nc`    | `3_features/era5_sfc.nc`                      |
-
-Only the ERA5 pressure-level grid (`era5pl`) is shipped, so the `aifspl`/`ml`
-vertical-grid variants and the `experimental` data pipelines are kept for
-reference but cannot be run with this extract.
+validation, 2017 test). They need to be manually downloaded from [Zenodo](https://zenodo.org/records/20733692).
