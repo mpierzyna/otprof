@@ -105,7 +105,7 @@ _wrf = WRFStage(
     namelist_tmpl_path="namelist.tmpl.input",
     myoutfields_path="myoutfields.txt",
     **env["wrf"],
-    resources=Resources(n_tasks=4, cpus_per_task=1, mem_per_cpu="1G"),
+    resources=Resources(n_tasks=64, cpus_per_task=1, mem_per_cpu="1G"),  # chaos: 128 cores available
 )
 
 _cn2 = PostprocCn2Stage(
