@@ -1,0 +1,37 @@
+&share
+ wrf_core = 'ARW',
+ max_dom = 1,
+ start_date = {{ share__start_date | all_domains }}
+ end_date   = {{ share__end_date | all_domains }}
+ interval_seconds = 10800,
+/
+
+&geogrid
+ parent_id            = 1
+ parent_grid_ratio    = 1
+ i_parent_start       = 1
+ j_parent_start       = 1
+ e_we                 = 144
+ e_sn                 = 192
+ geog_data_res        = 'default'
+ dx                   = 2000
+ dy                   = 2000
+ map_proj             = 'lambert'
+ ref_lat              = 52.109
+ ref_lon              = 5.499
+ truelat1             = 51.396
+ truelat2             = 51.396
+ pole_lat             = 90
+ pole_lon             = 0
+ stand_lon            = -22.671
+ geog_data_path = '{{ geogrid__geog_data_path }}'
+/
+
+&ungrib
+ out_format = 'WPS',
+ prefix = '{{ ungrib__prefix }}',
+/
+
+&metgrid
+ fg_name = 'ERA5','CERRA'
+/

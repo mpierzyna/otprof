@@ -1,0 +1,10 @@
+machine: dev
+
+wps:
+  wps_tmpl_dir: "_wps"
+  geog_data_path: "/tmp"
+
+wrf:
+  wrf_tmpl_dir: "_wps"
+
+pipeline: "p_default"

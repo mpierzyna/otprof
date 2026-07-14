@@ -1,0 +1,8 @@
+wps:
+  wps_tmpl_dir: "/media/sukanta/HD3/max/WRFV4.5_Photonloop/submodules/WPS"
+  geog_data_path: "/home/sukanta/WRF/DATA/geogV4"
+
+wrf:
+  wrf_tmpl_dir: "/media/sukanta/HD3/max/WRFV4.5_Photonloop/submodules/WRF"
+
+pipeline: "p_preproc"

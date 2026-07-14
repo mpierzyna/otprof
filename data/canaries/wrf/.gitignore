@@ -1,0 +1,6 @@
+env.yaml
+test/
+tmp/
+.array_sim_dirs
+_wrf
+_wps
