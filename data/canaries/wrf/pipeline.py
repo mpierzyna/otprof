@@ -16,6 +16,7 @@ from wrf_massive.stages.forcing.variables import (
     CERRA_PRESSURE_LEVELS,
     CERRA_SINGLE_LEVEL_VARIABLES,
 )
+from wrf_massive.stages.forcing import PullCerraStage
 from wrf_massive.stages.misc import GarbageCollectStage, MarkDone
 from wrf_massive.stages.postproc import PostprocCn2Stage
 from wrf_massive.stages.wps import WPSStage
@@ -80,6 +81,14 @@ _era5_cds = PullCdsStage(
         ),
     ],
     resources=Resources(n_tasks=1, cpus_per_task=1, mem_per_cpu="1G"),
+)
+
+_cerra = PullCerraStage(
+    work_dir="1_forcing",
+    remote_path="tudelft:staff-umbrella/HBaki/CERRA",
+    remote_flist_path="CERRA_files.txt.gz",
+    n_transfers=4,
+    resources=Resources(n_tasks=1, cpus_per_task=4, mem_per_cpu="1G"),
 )
 
 _wps = WPSStage(
@@ -157,9 +166,19 @@ _wps_gc = GarbageCollectStage(
 _sim_done = MarkDone(work_dir=".", run_cond_fn=cn2_files_exist)
 
 # Assemble pipeline
-p_default = Pipeline(
+p_cds = Pipeline(
     cerra=_cerra_cds,
     era5=_era5_cds,
+    wps=_wps,
+    forcing_gc=_forcing_gc,
+    wrf=_wrf,
+    cn2=_cn2,
+    wps_gc=_wps_gc,
+    sim_done=_sim_done,
+)
+
+p_local = Pipeline(
+    cerra=_cerra,
     wps=_wps,
     forcing_gc=_forcing_gc,
     wrf=_wrf,
@@ -171,4 +190,4 @@ p_default = Pipeline(
 
 if __name__ == "__main__":
     logging.basicConfig(level="INFO")
-    p_default.run(sim_canaries)
+    p_cds.run(sim_canaries)
