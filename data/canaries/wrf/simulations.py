@@ -15,9 +15,9 @@ mynn25 = {
     "physics__sf_urban_physics": "0",  # no urban model
 }
 
-# Lat/lon box the CDS forcing download must cover. Fully contains the 280x150 @ 2km Canaries domain
+# Lat/lon box the CDS forcing download must cover. Fully contains the 300x170 @ 2km Canaries domain
 # (centre 28.4N/15.7W) with margin; validated against namelist.tmpl.wps by PullCdsStage.
-canaries_area = BBox(north=31.0, west=-20.5, south=25.5, east=-11.0)
+canaries_area = BBox(north=32.0, west=-20.5, south=24.0, east=-11.0)
 
 # Four 5-day net simulation across seasons
 sim_canaries = [

@@ -96,7 +96,7 @@ _wps = WPSStage(
     forcing_dir=_cerra_cds.work_dir,  # 1_forcing
     namelist_tmpl_path="namelist.tmpl.wps",
     **env["wps"],
-    resources=Resources(n_tasks=1, cpus_per_task=1, mem_per_cpu="1G"),  # serial WPS
+    resources=Resources(n_tasks=1, cpus_per_task=1, mem_per_cpu="16G"),  # serial WPS
 )
 
 # Forcing data no longer needed after WPS finished -> clear space.
@@ -114,7 +114,7 @@ _wrf = WRFStage(
     namelist_tmpl_path="namelist.tmpl.input",
     myoutfields_path="myoutfields.txt",
     **env["wrf"],
-    resources=Resources(n_tasks=64, cpus_per_task=1, mem_per_cpu="1G"),  # chaos: 128 cores available
+    resources=Resources(n_tasks=48, cpus_per_task=1, mem_per_cpu="1G"),  # chaos: 128 cores available
 )
 
 _cn2 = PostprocCn2Stage(

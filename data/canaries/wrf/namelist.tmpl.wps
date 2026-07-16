@@ -11,8 +11,8 @@
  parent_grid_ratio    = 1
  i_parent_start       = 1
  j_parent_start       = 1
- e_we                 = 280
- e_sn                 = 150
+ e_we                 = 300
+ e_sn                 = 170
  geog_data_res        = 'default'
  dx                   = 2000
  dy                   = 2000
