@@ -19,15 +19,18 @@ mynn25 = {
 # (centre 28.4N/15.7W) with margin; validated against namelist.tmpl.wps by PullCdsStage.
 canaries_area = BBox(north=31.0, west=-20.5, south=25.5, east=-11.0)
 
-# Single 5-day net simulation (summer trade-wind regime) with a 12h spin-up prepended.
-sim_canaries = Simulation(
-    begin="2020-07-01T00:00:00",
-    end="2020-07-06T00:00:00",
-    warmup_h=12,
-    sim_dir="sim_2020-07-01",
-    settings=mynn25,
-    area=canaries_area,
-)
+# Four 5-day net simulation across seasons
+sim_canaries = [
+    Simulation(
+        begin=f"2020-{month:02d}-01T00:00:00",
+        end=f"2020-{month:02d}-06T00:00:00",
+        warmup_h=12,
+        sim_dir=f"sim_2020-{month:02d}-01",
+        settings=mynn25,
+        area=canaries_area,
+    )
+    for month in [1, 4, 7, 10]  # Jan, Apr, Jul, Oct
+]
 
 
 if __name__ == "__main__":
