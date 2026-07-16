@@ -160,10 +160,15 @@ _wps_gc = GarbageCollectStage(
     glob_pattern="met_em*.nc",
     armed=True,
     run_cond_fn=cn2_files_exist,
+    resources=Resources(n_tasks=1, cpus_per_task=1, mem_per_cpu="1G"),
 )
 
 # Mark whole simulation dir as done when all stages complete.
-_sim_done = MarkDone(work_dir=".", run_cond_fn=cn2_files_exist)
+_sim_done = MarkDone(
+    work_dir=".",
+    run_cond_fn=cn2_files_exist,
+    resources=Resources(n_tasks=1, cpus_per_task=1, mem_per_cpu="1G"),
+)
 
 # Assemble pipeline
 p_cds = Pipeline(
