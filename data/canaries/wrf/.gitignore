@@ -5,3 +5,4 @@ tmp/
 _wrf
 _wps
 __pycache__/
+slurm/
