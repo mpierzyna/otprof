@@ -1,0 +1,493 @@
+Running stages ['cn2'] for simulation <begin=datetime.datetime(2020, 1, 1, 0, 0) end=datetime.datetime(2020, 1, 6, 0, 0) warmup_h=12 settings={'physics__bl_mynn_closure': '2.5', 'physics__bl_mynn_edmf': '0', 'physics__bl_mynn_edmf_mom': '0', 'physics__bl_mynn_edmf_tke': '0', 'physics__bl_mynn_mixlength': '1', 'physics__bl_pbl_physics': '5', 'physics__sf_sfclay_physics': '5', 'physics__sf_urban_physics': '0'} sim_dir=PosixPath('sim_2020-01-01') area=BBox(north=32.0, west=-20.5, south=24.0, east=-11.0)> from 'sim_2020-01-01'...
+2026-07-16 23:49:55,040 INFO:wrf_massive.wrf_massive.base:Processing simulation 2020-01-01 00:00:00 -> 2020-01-06 00:00:00 (warmup: 12h)
+2026-07-16 23:49:55,040 INFO:wrf_massive.wrf_massive.base:Entering stage #1/1: cn2
+2026-07-16 23:49:55,040 INFO:wrf_massive.wrf_massive.base:Setting up 'cn2'...
+2026-07-16 23:49:55,040 INFO:wrf_massive.stages.postproc.cn2:Setting up Cn2 post-processing working dir...
+2026-07-16 23:49:55,041 INFO:wrf_massive.stages.postproc.cn2:-> .gitignore copied to sim_2020-01-01/4_postproc
+2026-07-16 23:49:55,041 INFO:wrf_massive.stages.postproc.cn2:-> Setup done.
+2026-07-16 23:49:55,042 INFO:wrf_massive.wrf_massive.base:Running stage 'cn2'...
+2026-07-16 23:49:55,042 INFO:wrf_massive.stages.postproc.cn2:Starting parallel post-processing with 8 workers...
+2026-07-16 23:49:55,064 INFO:wrf_massive.stages.postproc.cn2:Post-processing wrfout_aux_d01_2020-01-01_00:00:00...
+2026-07-16 23:49:55,064 INFO:wrf_massive.stages.postproc.cn2:Post-processing wrfout_aux_d01_2020-01-01_06:00:00...
+2026-07-16 23:49:55,064 INFO:wrf_massive.stages.postproc.cn2:Post-processing wrfout_aux_d01_2020-01-01_12:00:00...
+2026-07-16 23:49:55,064 INFO:wrf_massive.stages.postproc.cn2:Post-processing wrfout_aux_d01_2020-01-01_18:00:00...
+2026-07-16 23:49:55,065 INFO:wrf_massive.stages.postproc.cn2:Post-processing wrfout_aux_d01_2020-01-02_00:00:00...
+2026-07-16 23:49:55,065 INFO:wrf_massive.stages.postproc.cn2:Post-processing wrfout_aux_d01_2020-01-02_06:00:00...
+2026-07-16 23:49:55,065 INFO:wrf_massive.stages.postproc.cn2:Post-processing wrfout_aux_d01_2020-01-02_12:00:00...
+2026-07-16 23:49:55,065 INFO:wrf_massive.stages.postproc.cn2:Post-processing wrfout_aux_d01_2020-01-02_18:00:00...
+Reading z... Reading z... Reading z... Reading z... Reading z... Reading z... Reading z... Reading z... Done!
+Reading HGT... Done!
+Reading p... Done!
+Reading HGT... Done!
+Done!
+Reading p... Reading HGT... Done!
+Reading p... Done!
+Reading HGT... Done!
+Reading p... Done!
+Reading HGT... Done!
+Reading p... Done!
+Reading HGT... Done!
+Reading HGT... Done!
+Reading p... Done!
+Reading p... Done!
+Reading HGT... Done!
+Reading p... Done!
+Reading uvmet... Done!
+Reading uvmet... Done!
+Reading uvmet... Done!
+Reading uvmet... Done!
+Reading uvmet... Done!
+Reading uvmet... Done!
+Reading uvmet... Done!
+Reading uvmet... Done!
+Reading wa... Done!
+Reading wa... Done!
+Reading wa... Done!
+Reading wa... Done!
+Reading wa... Done!
+Reading wa... Done!
+Reading wa... Done!
+Reading wa... Done!
+Reading th... Done!
+Reading th... Done!
+Reading th... Done!
+Reading th... Done!
+Reading th... Done!
+Reading th... Done!
+Reading th... Done!
+Reading th... Done!
+Reading rh... Done!
+Reading rh... Done!
+Reading rh... Done!
+Reading rh... Done!
+Reading rh... Done!
+Reading rh... Done!
+Reading rh... Done!
+Reading rh... Done!
+Reading PBLH... Done!
+Reading LANDMASK... Done!
+Reading slp... Done!
+Reading PBLH... Done!
+Reading LANDMASK... Done!
+Reading slp... Done!
+Reading PBLH... Done!
+Reading LANDMASK... Done!
+Reading slp... Done!
+Reading PBLH... Done!
+Reading PBLH... Done!
+Reading LANDMASK... Done!
+Reading slp... Done!
+Reading LANDMASK... Done!
+Reading slp... Done!
+Reading PBLH... Done!
+Reading LANDMASK... Done!
+Reading slp... Done!
+Reading PBLH... Done!
+Reading LANDMASK... Done!
+Reading slp... Done!
+Reading PBLH... Done!
+Reading LANDMASK... Done!
+Reading slp... Done!
+Reading T2... Done!
+Reading U10... Done!
+Reading V10... Done!
+Reading LH... Done!
+Reading HFX... Done!
+Reading UST... Done!
+Reading QKE... Done!
+Reading T2... Done!
+Reading U10... Done!
+Reading V10... Done!
+Reading LH... Done!
+Reading HFX... Done!
+Reading UST... Done!
+Reading QKE... Done!
+Reading T2... Done!
+Reading U10... Done!
+Reading V10... Done!
+Reading LH... Done!
+Reading HFX... Done!
+Reading UST... Done!
+Reading EL_PBL... Done!
+Reading QKE... Done!
+Reading T2... Done!
+Reading U10... Done!
+Reading V10... Done!
+Reading LH... Done!
+Reading HFX... Done!
+Reading UST... Done!
+Reading QKE... Done!
+Reading T2... Done!
+Reading U10... Done!
+Reading V10... Done!
+Reading LH... Done!
+Reading T2... Done!
+Reading T2... Done!
+Reading HFX... Done!
+Reading U10... Done!
+Reading U10... Done!
+Reading UST... Done!
+Reading V10... Done!
+Reading V10... Done!
+Reading QKE... Done!
+Reading LH... Done!
+Reading LH... Done!
+Reading HFX... Done!
+Reading HFX... Done!
+Reading UST... Done!
+Reading UST... Done!
+Reading QKE... Done!
+Reading QKE... Done!
+Reading T2... Done!
+Reading U10... Done!
+Reading V10... Done!
+Reading LH... Done!
+Reading HFX... Done!
+Reading UST... Done!
+Reading QKE... Done!
+Reading EL_PBL... Done!
+Reading EL_PBL... Destaggering along bottom_top_stag (1)... Done!
+Reading TSQ... Done!
+Reading EL_PBL... Done!
+Reading EL_PBL... Done!
+Reading EL_PBL... Done!
+Reading EL_PBL... Destaggering along bottom_top_stag (1)... Done!
+Reading EL_PBL... Done!
+Reading TSQ... Destaggering along bottom_top_stag (1)... Done!
+Reading TSQ... Destaggering along bottom_top_stag (1)... Done!
+Reading TSQ... Done!
+Reading tk... Destaggering along bottom_top_stag (1)... Destaggering along bottom_top_stag (1)... Destaggering along bottom_top_stag (1)... Done!
+Reading TSQ... Done!
+Reading TSQ... Done!
+Reading TSQ... Destaggering along bottom_top_stag (1)... Done!
+Reading TSQ... Done!
+Reading tk... Done!
+Reading tk... Done!
+Reading tk... Done!
+Reading tk... Done!
+Reading tk... Done!
+Reading tk... Done!
+Reading tk... Done!
+Done!
+2026-07-16 23:50:19,023 INFO:wrf_massive.stages.postproc.cn2:-> Processing done. Expected filesize: 2.0 GB
+2026-07-16 23:50:19,024 INFO:wrf_massive.stages.postproc.cn2:-> Saving to sim_2020-01-01/4_postproc/wrfout_aux_d01_2020-01-02_00-00-00_cn2.nc...
+Done!
+Done!
+Done!
+Done!
+Done!
+2026-07-16 23:50:19,505 INFO:wrf_massive.stages.postproc.cn2:-> Processing done. Expected filesize: 2.0 GB
+2026-07-16 23:50:19,505 INFO:wrf_massive.stages.postproc.cn2:-> Saving to sim_2020-01-01/4_postproc/wrfout_aux_d01_2020-01-01_06-00-00_cn2.nc...
+Done!
+2026-07-16 23:50:19,712 INFO:wrf_massive.stages.postproc.cn2:-> Processing done. Expected filesize: 2.0 GB
+2026-07-16 23:50:19,712 INFO:wrf_massive.stages.postproc.cn2:-> Saving to sim_2020-01-01/4_postproc/wrfout_aux_d01_2020-01-01_00-00-00_cn2.nc...
+2026-07-16 23:50:19,791 INFO:wrf_massive.stages.postproc.cn2:-> Processing done. Expected filesize: 2.0 GB
+2026-07-16 23:50:19,791 INFO:wrf_massive.stages.postproc.cn2:-> Saving to sim_2020-01-01/4_postproc/wrfout_aux_d01_2020-01-01_18-00-00_cn2.nc...
+2026-07-16 23:50:19,968 INFO:wrf_massive.stages.postproc.cn2:-> Processing done. Expected filesize: 2.0 GB
+2026-07-16 23:50:19,968 INFO:wrf_massive.stages.postproc.cn2:-> Saving to sim_2020-01-01/4_postproc/wrfout_aux_d01_2020-01-01_12-00-00_cn2.nc...
+2026-07-16 23:50:20,065 INFO:wrf_massive.stages.postproc.cn2:-> Processing done. Expected filesize: 2.0 GB
+2026-07-16 23:50:20,065 INFO:wrf_massive.stages.postproc.cn2:-> Saving to sim_2020-01-01/4_postproc/wrfout_aux_d01_2020-01-02_06-00-00_cn2.nc...
+2026-07-16 23:50:20,102 INFO:wrf_massive.stages.postproc.cn2:-> Processing done. Expected filesize: 2.0 GB
+2026-07-16 23:50:20,102 INFO:wrf_massive.stages.postproc.cn2:-> Saving to sim_2020-01-01/4_postproc/wrfout_aux_d01_2020-01-02_12-00-00_cn2.nc...
+2026-07-16 23:50:20,174 INFO:wrf_massive.stages.postproc.cn2:-> Processing done. Expected filesize: 2.0 GB
+2026-07-16 23:50:20,174 INFO:wrf_massive.stages.postproc.cn2:-> Saving to sim_2020-01-01/4_postproc/wrfout_aux_d01_2020-01-02_18-00-00_cn2.nc...
+2026-07-16 23:50:21,319 INFO:wrf_massive.stages.postproc.cn2:Post-processing wrfout_aux_d01_2020-01-03_00:00:00...
+Reading z... 2026-07-16 23:50:21,733 INFO:wrf_massive.stages.postproc.cn2:Post-processing wrfout_aux_d01_2020-01-03_06:00:00...
+Reading z... 2026-07-16 23:50:21,949 INFO:wrf_massive.stages.postproc.cn2:Post-processing wrfout_aux_d01_2020-01-03_12:00:00...
+Reading z... 2026-07-16 23:50:22,007 INFO:wrf_massive.stages.postproc.cn2:Post-processing wrfout_aux_d01_2020-01-03_18:00:00...
+Reading z... 2026-07-16 23:50:22,204 INFO:wrf_massive.stages.postproc.cn2:Post-processing wrfout_aux_d01_2020-01-04_00:00:00...
+Reading z... 2026-07-16 23:50:22,249 INFO:wrf_massive.stages.postproc.cn2:Post-processing wrfout_aux_d01_2020-01-04_06:00:00...
+Reading z... 2026-07-16 23:50:22,281 INFO:wrf_massive.stages.postproc.cn2:Post-processing wrfout_aux_d01_2020-01-04_12:00:00...
+Reading z... 2026-07-16 23:50:22,369 INFO:wrf_massive.stages.postproc.cn2:Post-processing wrfout_aux_d01_2020-01-04_18:00:00...
+Reading z... Done!
+Reading HGT... Done!
+Reading p... Done!
+Reading HGT... Done!
+Reading p... Done!
+Reading HGT... Done!
+Reading p... Done!
+Reading HGT... Done!
+Reading p... Done!
+Reading uvmet... Done!
+Reading HGT... Done!
+Reading p... Done!
+Reading HGT... Done!
+Reading p... Done!
+Reading HGT... Done!
+Reading p... Done!
+Reading HGT... Done!
+Reading p... Done!
+Reading uvmet... Done!
+Reading uvmet... Done!
+Reading uvmet... Done!
+Reading uvmet... Done!
+Reading uvmet... Done!
+Reading uvmet... Done!
+Reading uvmet... Done!
+Reading wa... Done!
+Reading wa... Done!
+Reading wa... Done!
+Reading wa... Done!
+Reading th... Done!
+Reading wa... Done!
+Reading wa... Done!
+Reading wa... Done!
+Reading wa... Done!
+Reading th... Done!
+Reading rh... Done!
+Reading th... Done!
+Reading th... Done!
+Reading rh... Done!
+Reading th... Done!
+Reading th... Done!
+Reading th... Done!
+Reading th... Done!
+Reading rh... Done!
+Reading rh... Done!
+Reading rh... Done!
+Reading rh... Done!
+Reading rh... Done!
+Reading rh... Done!
+Reading PBLH... Done!
+Reading LANDMASK... Done!
+Reading slp... Done!
+Reading PBLH... Done!
+Reading LANDMASK... Done!
+Reading slp... Done!
+Reading PBLH... Done!
+Reading LANDMASK... Done!
+Reading slp... Done!
+Reading PBLH... Done!
+Reading LANDMASK... Done!
+Reading slp... Done!
+Reading PBLH... Done!
+Reading LANDMASK... Done!
+Reading slp... Done!
+Reading PBLH... Done!
+Reading PBLH... Done!
+Reading LANDMASK... Done!
+Reading LANDMASK... Done!
+Reading slp... Done!
+Reading slp... Done!
+Reading PBLH... Done!
+Reading LANDMASK... Done!
+Reading slp... Done!
+Reading T2... Done!
+Reading U10... Done!
+Reading V10... Done!
+Reading LH... Done!
+Reading HFX... Done!
+Reading UST... Done!
+Reading QKE... Done!
+Reading EL_PBL... Done!
+Reading T2... Done!
+Reading U10... Done!
+Reading V10... Done!
+Reading LH... Done!
+Reading HFX... Done!
+Reading UST... Done!
+Reading QKE... Destaggering along bottom_top_stag (1)... Done!
+Reading TSQ... Done!
+Reading T2... Done!
+Reading T2... Done!
+Reading U10... Done!
+Reading U10... Done!
+Reading V10... Done!
+Reading V10... Done!
+Reading LH... Done!Done!
+
+Reading HFX... Reading LH... Done!
+Reading UST... Done!
+Reading HFX... Done!
+Reading QKE... Done!
+Reading UST... Done!
+Reading QKE... Done!
+Reading EL_PBL... Done!
+Reading T2... Done!
+Reading U10... Done!
+Reading V10... Done!
+Reading LH... Done!
+Reading HFX... Done!
+Reading UST... Done!
+Reading QKE... Done!
+Reading T2... Done!
+Reading U10... Done!
+Reading EL_PBL... Done!
+Reading V10... Done!
+Reading T2... Done!
+Reading EL_PBL... Done!
+Reading LH... Done!
+Reading U10... Done!
+Reading HFX... Done!
+Reading V10... Done!
+Reading UST... Done!
+Reading LH... Done!
+Reading tk... Done!
+Reading QKE... Done!
+Reading HFX... Done!
+Reading UST... Done!
+Reading QKE... Destaggering along bottom_top_stag (1)... Done!
+Reading TSQ... Done!
+Reading T2... Done!
+Reading U10... Done!
+Reading V10... Done!
+Reading LH... Done!
+Reading HFX... Done!
+Reading UST... Done!
+Reading QKE... Done!
+Reading EL_PBL... Destaggering along bottom_top_stag (1)... Destaggering along bottom_top_stag (1)... Done!
+Reading EL_PBL... Done!
+Reading EL_PBL... Done!
+Reading TSQ... Done!
+Reading TSQ... Done!
+Reading EL_PBL... Done!
+Reading tk... Destaggering along bottom_top_stag (1)... Done!
+Reading TSQ... Destaggering along bottom_top_stag (1)... Destaggering along bottom_top_stag (1)... Done!
+Reading TSQ... Done!
+Reading TSQ... Done!
+Reading tk... Done!
+Reading tk... Destaggering along bottom_top_stag (1)... Done!
+Reading TSQ... Done!
+Reading tk... Done!
+Reading tk... Done!
+Reading tk... Done!
+Reading tk... Done!
+2026-07-16 23:50:43,368 INFO:wrf_massive.stages.postproc.cn2:-> Processing done. Expected filesize: 2.0 GB
+2026-07-16 23:50:43,368 INFO:wrf_massive.stages.postproc.cn2:-> Saving to sim_2020-01-01/4_postproc/wrfout_aux_d01_2020-01-03_00-00-00_cn2.nc...
+Done!
+Done!
+Done!
+2026-07-16 23:50:44,314 INFO:wrf_massive.stages.postproc.cn2:-> Processing done. Expected filesize: 2.0 GB
+2026-07-16 23:50:44,314 INFO:wrf_massive.stages.postproc.cn2:-> Saving to sim_2020-01-01/4_postproc/wrfout_aux_d01_2020-01-03_06-00-00_cn2.nc...
+Done!
+Done!
+2026-07-16 23:50:44,710 INFO:wrf_massive.stages.postproc.cn2:-> Processing done. Expected filesize: 2.0 GB
+2026-07-16 23:50:44,710 INFO:wrf_massive.stages.postproc.cn2:-> Saving to sim_2020-01-01/4_postproc/wrfout_aux_d01_2020-01-03_18-00-00_cn2.nc...
+Done!
+2026-07-16 23:50:44,778 INFO:wrf_massive.stages.postproc.cn2:-> Processing done. Expected filesize: 2.0 GB
+2026-07-16 23:50:44,778 INFO:wrf_massive.stages.postproc.cn2:-> Saving to sim_2020-01-01/4_postproc/wrfout_aux_d01_2020-01-03_12-00-00_cn2.nc...
+Done!
+2026-07-16 23:50:45,136 INFO:wrf_massive.stages.postproc.cn2:-> Processing done. Expected filesize: 2.0 GB
+2026-07-16 23:50:45,136 INFO:wrf_massive.stages.postproc.cn2:-> Saving to sim_2020-01-01/4_postproc/wrfout_aux_d01_2020-01-04_06-00-00_cn2.nc...
+2026-07-16 23:50:45,240 INFO:wrf_massive.stages.postproc.cn2:-> Processing done. Expected filesize: 2.0 GB
+2026-07-16 23:50:45,240 INFO:wrf_massive.stages.postproc.cn2:-> Saving to sim_2020-01-01/4_postproc/wrfout_aux_d01_2020-01-04_00-00-00_cn2.nc...
+2026-07-16 23:50:45,348 INFO:wrf_massive.stages.postproc.cn2:-> Processing done. Expected filesize: 2.0 GB
+2026-07-16 23:50:45,348 INFO:wrf_massive.stages.postproc.cn2:-> Saving to sim_2020-01-01/4_postproc/wrfout_aux_d01_2020-01-04_12-00-00_cn2.nc...
+2026-07-16 23:50:45,526 INFO:wrf_massive.stages.postproc.cn2:-> Processing done. Expected filesize: 2.0 GB
+2026-07-16 23:50:45,526 INFO:wrf_massive.stages.postproc.cn2:-> Saving to sim_2020-01-01/4_postproc/wrfout_aux_d01_2020-01-04_18-00-00_cn2.nc...
+2026-07-16 23:50:45,534 INFO:wrf_massive.stages.postproc.cn2:Post-processing wrfout_aux_d01_2020-01-05_00:00:00...
+Reading z... 2026-07-16 23:50:46,414 INFO:wrf_massive.stages.postproc.cn2:Post-processing wrfout_aux_d01_2020-01-05_06:00:00...
+Reading z... 2026-07-16 23:50:46,782 INFO:wrf_massive.stages.postproc.cn2:Post-processing wrfout_aux_d01_2020-01-05_12:00:00...
+Reading z... 2026-07-16 23:50:46,864 INFO:wrf_massive.stages.postproc.cn2:Post-processing wrfout_aux_d01_2020-01-05_18:00:00...
+Reading z... 2026-07-16 23:50:47,211 INFO:wrf_massive.stages.postproc.cn2:Post-processing wrfout_aux_d01_2020-01-06_00:00:00...
+Reading z... Done!
+Reading HGT... Done!
+Reading p... Done!
+Reading HGT... Done!
+Reading p... Done!
+Reading uvmet... Done!
+Reading uvmet... Done!
+Reading HGT... Done!
+Reading p... Done!
+Reading wa... Done!
+Reading th... Done!
+Reading HGT... Done!
+Reading p... Done!
+Reading rh... Done!
+Reading HGT... Done!
+Reading p... Done!
+Reading PBLH... Done!
+Reading LANDMASK... Done!
+Reading slp... Done!
+Reading uvmet... Done!
+Reading uvmet... Done!
+Reading T2... Done!
+Reading U10... Done!
+Reading V10... Done!
+Reading LH... Done!
+Reading HFX... Done!
+Reading UST... Done!
+Reading QKE... Done!
+Reading EL_PBL... Destaggering along bottom_top_stag (0)... Done!
+Reading TSQ... Done!
+Reading tk... Done!
+Reading uvmet... Done!
+2026-07-16 23:50:50,051 INFO:wrf_massive.stages.postproc.cn2:-> Processing done. Expected filesize: 0.3 GB
+2026-07-16 23:50:50,051 INFO:wrf_massive.stages.postproc.cn2:-> Saving to sim_2020-01-01/4_postproc/wrfout_aux_d01_2020-01-06_00-00-00_cn2.nc...
+Done!
+Reading wa... Done!
+Reading wa... Done!
+Reading wa... Done!
+Reading th... Done!
+Reading wa... Done!
+Reading th... Done!
+Reading th... Done!
+Reading rh... Done!
+Reading rh... Done!
+Reading rh... Done!
+Reading th... Done!
+Reading rh... Done!
+Reading PBLH... Done!
+Reading LANDMASK... Done!
+Reading slp... Done!
+Reading PBLH... Done!
+Reading LANDMASK... Done!
+Reading slp... Done!
+Reading PBLH... Done!
+Reading LANDMASK... Done!
+Reading slp... Done!
+Reading PBLH... Done!
+Reading LANDMASK... Done!
+Reading slp... Done!
+Reading T2... Done!
+Reading U10... Done!
+Reading V10... Done!
+Reading LH... Done!
+Reading HFX... Done!
+Reading UST... Done!
+Reading QKE... Done!
+Reading T2... Done!
+Reading U10... Done!
+Reading V10... Done!
+Reading LH... Done!
+Reading HFX... Done!
+Reading UST... Done!
+Reading QKE... Done!
+Reading EL_PBL... Done!
+Reading EL_PBL... Done!
+Reading T2... Done!
+Reading U10... Done!
+Reading V10... Done!
+Reading LH... Done!
+Reading HFX... Done!
+Reading UST... Done!
+Reading QKE... Destaggering along bottom_top_stag (1)... Done!
+Reading TSQ... Destaggering along bottom_top_stag (1)... Done!
+Reading TSQ... Done!
+Reading EL_PBL... Done!
+Reading T2... Done!
+Reading U10... Done!
+Reading V10... Done!
+Reading LH... Done!
+Reading HFX... Done!
+Reading UST... Done!
+Reading QKE... Done!
+Reading tk... Done!
+Reading tk... Destaggering along bottom_top_stag (1)... Done!
+Reading TSQ... Done!
+Reading EL_PBL... Done!
+Reading tk... Destaggering along bottom_top_stag (1)... Done!
+Reading TSQ... Done!
+Reading tk... Done!
+Done!
+2026-07-16 23:51:01,830 INFO:wrf_massive.stages.postproc.cn2:-> Processing done. Expected filesize: 2.0 GB
+2026-07-16 23:51:01,830 INFO:wrf_massive.stages.postproc.cn2:-> Saving to sim_2020-01-01/4_postproc/wrfout_aux_d01_2020-01-05_06-00-00_cn2.nc...
+2026-07-16 23:51:01,959 INFO:wrf_massive.stages.postproc.cn2:-> Processing done. Expected filesize: 2.0 GB
+2026-07-16 23:51:01,959 INFO:wrf_massive.stages.postproc.cn2:-> Saving to sim_2020-01-01/4_postproc/wrfout_aux_d01_2020-01-05_12-00-00_cn2.nc...
+Done!
+2026-07-16 23:51:02,402 INFO:wrf_massive.stages.postproc.cn2:-> Processing done. Expected filesize: 2.0 GB
+2026-07-16 23:51:02,403 INFO:wrf_massive.stages.postproc.cn2:-> Saving to sim_2020-01-01/4_postproc/wrfout_aux_d01_2020-01-05_18-00-00_cn2.nc...
+Done!
+2026-07-16 23:51:03,754 INFO:wrf_massive.stages.postproc.cn2:-> Processing done. Expected filesize: 2.0 GB
+2026-07-16 23:51:03,754 INFO:wrf_massive.stages.postproc.cn2:-> Saving to sim_2020-01-01/4_postproc/wrfout_aux_d01_2020-01-05_00-00-00_cn2.nc...
+2026-07-16 23:51:05,516 INFO:wrf_massive.stages.postproc.cn2:Done!

@@ -1,0 +1,111 @@
+Running stages ['wrf'] for simulation <begin=datetime.datetime(2020, 4, 1, 0, 0) end=datetime.datetime(2020, 4, 6, 0, 0) warmup_h=12 settings={'physics__bl_mynn_closure': '2.5', 'physics__bl_mynn_edmf': '0', 'physics__bl_mynn_edmf_mom': '0', 'physics__bl_mynn_edmf_tke': '0', 'physics__bl_mynn_mixlength': '1', 'physics__bl_pbl_physics': '5', 'physics__sf_sfclay_physics': '5', 'physics__sf_urban_physics': '0'} sim_dir=PosixPath('sim_2020-04-01') area=BBox(north=32.0, west=-20.5, south=24.0, east=-11.0)> from 'sim_2020-04-01'...
+2026-07-16 23:49:55,030 INFO:wrf_massive.wrf_massive.base:Processing simulation 2020-04-01 00:00:00 -> 2020-04-06 00:00:00 (warmup: 12h)
+2026-07-16 23:49:55,030 INFO:wrf_massive.wrf_massive.base:Entering stage #1/1: wrf
+2026-07-16 23:49:55,030 INFO:wrf_massive.wrf_massive.base:Setting up 'wrf'...
+2026-07-16 23:49:55,034 INFO:wrf_massive.stages.wrf:-> namelist.input rendered.
+2026-07-16 23:49:55,034 INFO:wrf_massive.stages.wrf:-> setup_wrf.sh copied.
+2026-07-16 23:49:55,034 INFO:wrf_massive.stages.wrf:-> run_wrf.sh copied.
+2026-07-16 23:49:55,034 INFO:wrf_massive.stages.wrf:-> .gitignore copied.
+2026-07-16 23:49:55,034 INFO:wrf_massive.stages.wrf:-> myoutfields.txt copied.
+Copying files from /data/WRF/v4.5/WRF/run directory...
+sending incremental file list
+BROADBAND_CLOUD_GODDARD.bin
+CAM_ABS_DATA
+CAM_AEROPT_DATA
+CAMtr_volume_mixing_ratio -> CAMtr_volume_mixing_ratio.SSP245
+CAMtr_volume_mixing_ratio.A1B
+CAMtr_volume_mixing_ratio.A2
+CAMtr_volume_mixing_ratio.RCP4.5
+CAMtr_volume_mixing_ratio.RCP6
+CAMtr_volume_mixing_ratio.RCP8.5
+CAMtr_volume_mixing_ratio.SSP119
+CAMtr_volume_mixing_ratio.SSP126
+CAMtr_volume_mixing_ratio.SSP245
+CAMtr_volume_mixing_ratio.SSP370
+CAMtr_volume_mixing_ratio.SSP585
+CCN_ACTIVATE.BIN
+CLM_ALB_ICE_DFS_DATA
+CLM_ALB_ICE_DRC_DATA
+CLM_ASM_ICE_DFS_DATA
+CLM_ASM_ICE_DRC_DATA
+CLM_DRDSDT0_DATA
+CLM_EXT_ICE_DFS_DATA
+CLM_EXT_ICE_DRC_DATA
+CLM_KAPPA_DATA
+CLM_TAU_DATA
+ETAMPNEW_DATA
+ETAMPNEW_DATA.expanded_rain
+ETAMPNEW_DATA.expanded_rain_DBL
+ETAMPNEW_DATA_DBL
+GENPARM.TBL
+HLC.TBL
+LANDUSE.TBL
+MPTABLE.TBL -> ../phys/noahmp/parameters/MPTABLE.TBL
+README.namelist
+README.physics_files
+README.rasm_diag
+README.tslist
+RRTMG_LW_DATA
+RRTMG_LW_DATA_DBL
+RRTMG_SW_DATA
+RRTMG_SW_DATA_DBL
+RRTM_DATA
+RRTM_DATA_DBL
+SOILPARM.TBL
+SOILPARM.TBL_Kishne_2017
+STOCHPERT.TBL
+URBPARM.TBL
+URBPARM_LCZ.TBL
+URBPARM_UZE.TBL
+VEGPARM.TBL
+aerosol.formatted
+aerosol_lat.formatted
+aerosol_lon.formatted
+aerosol_plev.formatted
+bulkdens.asc_s_0_03_0_9
+bulkradii.asc_s_0_03_0_9
+capacity.asc
+co2_trans
+coeff_p.asc
+coeff_q.asc
+constants.asc
+create_p3_lookupTable_1.f90-v5.4
+create_p3_lookupTable_2.f90-v5.3
+eclipse_besselian_elements.dat
+grib2map.tbl
+gribmap.txt
+ishmael-gamma-tab.bin
+ishmael-qi-qc.bin
+ishmael-qi-qr.bin
+kernels.asc_s_0_03_0_9
+kernels_z.asc
+masses.asc
+namelist.input.backup.2023-07-22_22_00_49
+namelist.input.backup.2023-07-22_22_02_19
+namelist.input.backup.2023-07-22_22_02_47
+namelist.input.backup.2023-07-22_22_15_47
+namelist.input.backup.2023-07-22_22_18_50
+namelist.input.backup.2023-07-22_22_20_31
+namelist.input.backup.2023-07-22_22_55_52
+namelist.input.backup.2023-07-26_21_04_10
+ozone.formatted
+ozone_lat.formatted
+ozone_plev.formatted
+p3_lookupTable_1.dat-v5.4_2momI
+p3_lookupTable_1.dat-v5.4_3momI
+p3_lookupTable_2.dat-v5.3
+termvels.asc
+tr49t67
+tr49t85
+tr67t85
+wind-turbine-1.tbl
+
+sent 174,399,238 bytes  received 1,694 bytes  348,801,864.00 bytes/sec
+total size is 174,350,957  speedup is 1.00
+Linking .exe files from /data/WRF/v4.5/WRF/main directory...
+Linking met_em* files from /home/max/projects/otprof_public/data/canaries/wrf/sim_2020-04-01/2_wps directory...
+WRF setup successfully!
+2026-07-16 23:49:55,285 INFO:wrf_massive.stages.wrf:-> Ran setup_wrf.sh successfully.
+2026-07-16 23:49:55,286 INFO:wrf_massive.wrf_massive.base:Running stage 'wrf'...
+PARALLEL MODE with 48 CPUs!
+2026-07-17 07:24:06,335 INFO:wrf_massive.stages.wrf:-> Ran run_wrf.sh successfully.
