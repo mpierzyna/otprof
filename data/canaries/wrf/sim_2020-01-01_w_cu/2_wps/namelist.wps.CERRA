@@ -1,0 +1,37 @@
+&share
+ wrf_core = 'ARW',
+ max_dom = 1,
+ start_date = '2019-12-31_12:00:00',
+ end_date   = '2020-01-06_00:00:00',
+ interval_seconds = 10800,
+/
+
+&geogrid
+ parent_id            = 1
+ parent_grid_ratio    = 1
+ i_parent_start       = 1
+ j_parent_start       = 1
+ e_we                 = 300
+ e_sn                 = 170
+ geog_data_res        = 'default'
+ dx                   = 2000
+ dy                   = 2000
+ map_proj             = 'lambert'
+ ref_lat              = 28.4
+ ref_lon              = -15.7
+ truelat1             = 28.4
+ truelat2             = 28.4
+ pole_lat             = 90
+ pole_lon             = 0
+ stand_lon            = -15.7
+ geog_data_path = '/data/WRF/DATA/geogV4'
+/
+
+&ungrib
+ out_format = 'WPS',
+ prefix = 'CERRA',
+/
+
+&metgrid
+ fg_name = 'ERA5','CERRA'
+/

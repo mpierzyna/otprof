@@ -14,15 +14,5 @@ dev = [
 [tool.uv.sources]
 wrf_massive = { path = "submodules/wrf-massive", editable = true }
 
-[tool.black]
+[tool.ruff]
 line-length = 120  # align with pycharm
-target-version = ["py312"]
-# 'extend-exclude' excludes files or directories in addition to the defaults
-extend-exclude = '''
-# A regex preceded with ^/ will apply only to files and directories
-# in the root of the project.
-(
-  # Don't format submodules
-  ^/submodules
-)
-'''
