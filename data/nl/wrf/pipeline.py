@@ -153,6 +153,26 @@ if env["machine"] == "turbulence":
         # cerra_gc=_update_resources(_cerra_gc, n_tasks=8),  # should just fit. 56 * (16GB CERRA + 1 GB WPS) = 952 GB
     )
 
+if env["machine"] == "delftblue":
+    # _wps_tmp_ssd = WPSTmpDirStage(
+    #     **_wps.model_dump(),
+    #     tmp_dir_root="/tmp/wrf-massive",  # node-local SSD
+    # )
+    p_preproc = Pipeline(
+        cerra=_update_resources(
+            _cerra,
+            n_tasks=1,
+            cpus_per_task=8,
+        ),
+        wps=_update_resources(
+            # _wps_tmp_ssd,
+            _wps,
+            n_tasks=4,
+            cpus_per_task=1,
+            walltime=datetime.timedelta(hours=1),
+        ),
+    )
+
 if env["machine"] == "snellius":
     # For Snellius: run WRF and postproc with more ressources.
     # Minimum alloc: 16 cores, 28 GB RAM

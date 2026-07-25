@@ -24,8 +24,8 @@ fi
 # Run geogrid, if not done, yet.
 if [ ! -f geo_em.d01.nc ]; then
     ln -sf namelist.wps.CERRA namelist.wps
-    ./geogrid.exe
-    check_log geogrid.log  # check for successful completion because geogrib doesn't exit with error code on failure
+    srun ./geogrid.exe
+    check_log geogrid.log.0000  # check for successful completion because geogrib doesn't exit with error code on failure
 fi
 
 # Process CERRA data, if not done, yet.
@@ -52,8 +52,8 @@ fi
 
 # Run metgrid and delete intermediate files after completion
 if [[ $(ls met_em* | wc -l) -eq 0 ]]; then
-    ./metgrid.exe
-    check_log metgrid.log  # check for successful completion because metgrid doesn't exit with error code on failure
+    srun ./metgrid.exe
+    check_log metgrid.log.0000  # check for successful completion because metgrid doesn't exit with error code on failure
     rm -r CERRA:*
     rm -r ERA5:*
 fi

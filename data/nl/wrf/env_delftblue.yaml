@@ -1,0 +1,10 @@
+machine: delftblue
+
+wps:
+  wps_tmpl_dir: "/home/mpierzyna/wrf/WPS"
+  geog_data_path: "/home/mpierzyna/wrf/WPS_GEOG"
+
+wrf:
+  wrf_tmpl_dir: "/home/mpierzyna/wrf/WRF"
+
+pipeline: "p_preproc"
