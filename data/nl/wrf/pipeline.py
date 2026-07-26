@@ -111,12 +111,6 @@ def cn2_files_exist(s: Simulation) -> bool:
     return len(list(pathlib.Path(cn2_dir).glob("wrfout*cn2.nc"))) > 0
 
 
-_wps_gc = GarbageCollectStage(
-    work_dir=_wps.work_dir,  # 2_wps
-    glob_pattern="met_em*.nc",
-    armed=True,
-    run_cond_fn=cn2_files_exist,
-)
 # mark whole simulation dir as done when all stages complete
 _sim_done = MarkDone(work_dir=".", run_cond_fn=cn2_files_exist)
 
@@ -180,7 +174,11 @@ if env["machine"] == "snellius":
     # Update: took ~9h, so set to 12h with buffer for copying and memory bandwith saturation.
     p_snellius = Pipeline(
         wrf_cn2=StageArray(
-            stages={"wrf": _wrf, "cn2": _cn2},
+            stages={
+                "wrf": _wrf,
+                "cn2": _cn2,
+                # "sim_done": _sim_done,  # doesn't work with scratch temp.
+            },
             tmp_work_root="/scratch-shared/mpierzyna/",
             resources=Resources(
                 n_tasks=32,
@@ -195,19 +193,6 @@ if env["machine"] == "snellius":
                     ".gitignore",
                 ],  # move only settings back
             },
-        ),
-        # will be submitted as separate job because otherwise WPS first gets moved to scratch. Not ideal.
-        wps_gc=StageArray(
-            stages={
-                "wps_gc": _wps_gc,
-                "sim_done": _sim_done,
-            },
-            resources=Resources(
-                n_tasks=1,
-                cpus_per_task=16,
-                mem_per_cpu="1G",
-                walltime=datetime.timedelta(minutes=10),
-            ),
         ),
     )
 
