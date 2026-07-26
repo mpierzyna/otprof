@@ -76,24 +76,24 @@
 /
 
  &physics
- mp_physics                          = 4,    4,     4,
- ra_lw_physics                       = 4,    4,     4,
- ra_sw_physics                       = 4,    4,     4,
- radt                                = 9,    3,     1,
+ mp_physics                          = 4,
+ ra_lw_physics                       = 4,
+ ra_sw_physics                       = 4,
+ radt                                = 3,
  sf_sfclay_physics                   = 5,
- sf_surface_physics                  = 2,    2,     2,
+ sf_surface_physics                  = 2,
  bl_pbl_physics                      = 5,
  bl_mynn_closure                     = 2.5,
- tke_budget                          = 1,    1,     1,
+ tke_budget                          = 1,
  bl_mynn_tkeadvect                   = .true.,
  bl_mynn_mixlength                   = 1,
  bl_mynn_edmf                        = 0,
  bl_mynn_edmf_mom                    = 0,
  bl_mynn_edmf_tke                    = 0,
- mfshconv                            = 0,    0,     0,
- bldt                                = 0,    0,     0,
- cu_physics                          = 1,    0,     0,
- cudt                                = 5,    5,     5,
+ mfshconv                            = 0,
+ bldt                                = 0,
+ cu_physics                          = 0,  ! ATTENTION! THIS NEEDS TO BE ZERO WHEN DX<4000m
+ cudt                                = 5,
  isfflx                              = 1,
  ifsnow                              = 0,
  icloud                              = 1,
@@ -105,53 +105,33 @@
  maxens2                             = 3,
  maxens3                             = 16,
  ensdim                              = 144,
- windfarm_opt                        = 0, 0, 0,
- /
-
- &fdda
- grid_fdda                           = 0, 0, 0,
- gfdda_inname                        = "wrffdda_d<domain>"
- gfdda_interval_m                    = 360, 360, 360,
- gfdda_end_h                         = 336, 336, 336,
- io_form_gfdda                       = 2,
- fgdt                                = 0, 0, 0,
- if_zfac_uv                          = 1, 1, 1,
- if_zfac_t                           = 1, 1, 1,
- if_zfac_q                           = 1, 1, 1,
- k_zfac_uv                           = 23, 23, 23,
- k_zfac_t                            = 23, 23, 23,
- k_zfac_q                            = 23, 23, 23,
- guv                                 = 0.0003, 0.0003, 0.0003,
- gt                                  = 0.0003, 0.0003, 0.0003,
- gq                                  = 0.0003, 0.0003, 0.0003,
- if_ramping                          = 0,
- dtramp_min                          = 60.0,
+ windfarm_opt                        = 0,
  /
 
  &dynamics
  w_damping                           = 0,
- diff_opt                            = 1,      1,      1,
- km_opt                              = 4,      4,      4,
- diff_6th_opt                        = 0,      0,      0,
- diff_6th_factor                     = 0.12,   0.12,   0.12,
+ diff_opt                            = 1,
+ km_opt                              = 4,
+ diff_6th_opt                        = 0,
+ diff_6th_factor                     = 0.12,
  base_temp                           = 290.
  damp_opt                            = 0,
- zdamp                               = 5000.,  5000.,  5000.,
- dampcoef                            = 0.2,    0.2,    0.2,
- khdif                               = 0,      0,      0,
- kvdif                               = 0,      0,      0,
- non_hydrostatic                     = .true., .true., .true.,
- moist_adv_opt                       = 1,      1,      1,
- scalar_adv_opt                      = 1,      1,      1,
- epssm                               = 0.2, 0.2, 0.2,
+ zdamp                               = 5000.,
+ dampcoef                            = 0.2,
+ khdif                               = 0,
+ kvdif                               = 0,
+ non_hydrostatic                     = .true.,
+ moist_adv_opt                       = 1,
+ scalar_adv_opt                      = 1,
+ epssm                               = 0.2,
  /
 
  &bdy_control
  spec_bdy_width                      = 5,
  spec_zone                           = 1,
  relax_zone                          = 4,
- specified                           = .true., .false.,.false.,
- nested                              = .false., .true., .true.,
+ specified                           = .true.,
+ nested                              = .false.,
  /
 
  &grib2
