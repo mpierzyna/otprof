@@ -4,3 +4,5 @@
 !.done
 !namelist.input
 !myoutfields.txt
+!setup_wrf.sh
+!run_wrf.sh

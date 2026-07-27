@@ -188,6 +188,8 @@ if env["machine"] == "snellius":
             ),
             stage_tmp_teardown_globs={
                 "wrf": [
+                    "setup_wrf.sh",
+                    "run_wrf.sh",
                     "namelist.input",
                     "myoutfields.txt",
                     ".gitignore",
