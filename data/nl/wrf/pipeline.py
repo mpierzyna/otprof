@@ -153,7 +153,7 @@ if env["machine"] == "snellius":
             },
             tmp_work_root="/scratch-shared/mpierzyna/",
             resources=Resources(
-                n_tasks=32,
+                n_tasks=8,  # todo: update
                 cpus_per_task=1,
                 mem_per_cpu="1500M",
                 walltime=datetime.timedelta(hours=12),
@@ -167,6 +167,7 @@ if env["machine"] == "snellius":
                     ".gitignore",
                 ],  # move only settings back
             },
+            stage_tmp_skip_teardown=["wrf", "cn2"],  # keep on scratch for debugging
         ),
     )
 
