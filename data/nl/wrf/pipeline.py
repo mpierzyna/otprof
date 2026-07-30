@@ -1,17 +1,16 @@
 """Pipeline for 1-year WRF run over NL"""
 
+import datetime
 import logging
 import pathlib
 import random
 import string
-import datetime
 
-from simulations import sim_dev
-from wrf_massive.base import Pipeline, Resources, Stage, Simulation
+from wrf_massive.base import Pipeline, Resources, Simulation, Stage
 from wrf_massive.config import yaml_to_dict
 from wrf_massive.stages.forcing import PullCerraStage
-from wrf_massive.stages.misc import GarbageCollectStage, StageArray, MarkDone
-from wrf_massive.stages.postproc import PostprocCn2Stage
+from wrf_massive.stages.misc import GarbageCollectStage, MarkDone, StageArray
+from wrf_massive.stages.postproc.cn2 import Cn2PostProcStage
 from wrf_massive.stages.wps import WPSStage, WPSTmpDirStage
 from wrf_massive.stages.wrf import WRFStage
 
@@ -68,38 +67,11 @@ _wrf = WRFStage(
     **env["wrf"],
     resources=Resources(n_tasks=4, cpus_per_task=1, mem_per_cpu="1G"),
 )
-_cn2 = PostprocCn2Stage(
+_cn2 = Cn2PostProcStage(
     work_dir="4_postproc",
     wrfout_dir=_wrf.work_dir,  # 3_wrf
     domain=1,
-    extract_vars=[
-        "z",
-        "HGT",
-        "p",
-        "uvmet",
-        "wa",
-        "th",  # potential temperature
-        # "tk",
-        "rh",
-        "PBLH",
-        "LANDMASK",
-        # # "QRAIN",
-        # # "dbz",
-        "slp",
-        "T2",
-        # "TH2",
-        "U10",
-        "V10",
-        "LH",
-        "HFX",
-        "UST",
-        # "ZNT",
-        # "Z0",
-        "QKE",
-        ("EL_PBL", "bottom_top_stag"),
-        "TSQ",
-    ],
-    compression=False,
+    compression=True,
     run_parallel=True,
     resources=Resources(n_tasks=1, cpus_per_task=8, mem_per_cpu="1GB"),
 )
@@ -201,7 +173,9 @@ if env["machine"] == "snellius":
 
 if __name__ == "__main__":
     logging.basicConfig(level="INFO")
-    p_default.run(sim_dev)
+    sim = Simulation.from_disk("sim_2017-01-01")
+    p_dev = Pipeline(cn2=_cn2)
+    p_dev.run(sim, force_run=True)
     # print(p["cn2"].get_inputs(s))
     # p["cn2"].run_single(s, 0)
 

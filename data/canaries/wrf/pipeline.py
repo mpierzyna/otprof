@@ -10,15 +10,14 @@ import pathlib
 from simulations import sim_canaries
 from wrf_massive.base import Pipeline, Resources, Simulation
 from wrf_massive.config import yaml_to_dict
-from wrf_massive.stages.forcing import CdsRequestSpec, PullCdsStage
+from wrf_massive.stages.forcing import CdsRequestSpec, PullCdsStage, PullCerraStage
 from wrf_massive.stages.forcing.variables import (
     CERRA_PRESSURE_LEVEL_VARIABLES,
     CERRA_PRESSURE_LEVELS,
     CERRA_SINGLE_LEVEL_VARIABLES,
 )
-from wrf_massive.stages.forcing import PullCerraStage
 from wrf_massive.stages.misc import GarbageCollectStage, MarkDone
-from wrf_massive.stages.postproc import PostprocCn2Stage
+from wrf_massive.stages.postproc.cn2 import Cn2PostProcStage
 from wrf_massive.stages.wps import WPSStage
 from wrf_massive.stages.wrf import WRFStage
 
@@ -117,32 +116,11 @@ _wrf = WRFStage(
     resources=Resources(n_tasks=48, cpus_per_task=1, mem_per_cpu="1G"),  # chaos: 128 cores available
 )
 
-_cn2 = PostprocCn2Stage(
+_cn2 = Cn2PostProcStage(
     work_dir="4_postproc",
     wrfout_dir=_wrf.work_dir,  # 3_wrf
     domain=1,
-    extract_vars=[
-        "z",
-        "HGT",
-        "p",
-        "uvmet",
-        "wa",
-        "th",  # potential temperature
-        "rh",
-        "PBLH",
-        "LANDMASK",
-        "slp",
-        "T2",
-        "U10",
-        "V10",
-        "LH",
-        "HFX",
-        "UST",
-        "QKE",
-        ("EL_PBL", "bottom_top_stag"),
-        "TSQ",
-    ],
-    compression=False,
+    compression=True,
     run_parallel=True,
     resources=Resources(n_tasks=1, cpus_per_task=8, mem_per_cpu="1GB"),
 )

@@ -1,10 +1,10 @@
-machine: dev
+machine: "dev"
 
 wps:
-  wps_tmpl_dir: "_wps"
+  wps_tmpl_dir: "/tmp"
   geog_data_path: "/tmp"
 
 wrf:
-  wrf_tmpl_dir: "_wps"
+  wrf_tmpl_dir: "/tmp"
 
-pipeline: "p_default"
+pipeline: "p_dev"
