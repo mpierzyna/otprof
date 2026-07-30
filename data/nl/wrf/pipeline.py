@@ -99,7 +99,7 @@ _cn2 = PostprocCn2Stage(
         ("EL_PBL", "bottom_top_stag"),
         "TSQ",
     ],
-    compression=False,
+    compression=True,  # todo set to True
     run_parallel=True,
     resources=Resources(n_tasks=1, cpus_per_task=8, mem_per_cpu="1GB"),
 )
@@ -181,7 +181,7 @@ if env["machine"] == "snellius":
             },
             tmp_work_root="/scratch-shared/mpierzyna/",
             resources=Resources(
-                n_tasks=32,
+                n_tasks=8,  # todo: update
                 cpus_per_task=1,
                 mem_per_cpu="1500M",
                 walltime=datetime.timedelta(hours=12),
@@ -195,6 +195,7 @@ if env["machine"] == "snellius":
                     ".gitignore",
                 ],  # move only settings back
             },
+            stage_tmp_skip_teardown=["wrf", "cn2"],  # keep on scratch for debugging
         ),
     )
 
