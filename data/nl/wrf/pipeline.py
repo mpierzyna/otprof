@@ -145,7 +145,7 @@ if env["machine"] == "snellius":
     # Update: took ~9h, so set to 12h with buffer for copying and memory bandwith saturation.
     # tmp-dir behaviour is configured per substage now. Copies, so the shared `_wrf`/`_cn2`
     # instances used by `p_default` keep their defaults.
-    TMP_ROOT = "/scratch-shared/mpierzyna/"
+    TMP_ROOT = pathlib.Path("/scratch-shared/mpierzyna/")
     _wrf_tmp = _wrf.model_copy(
         update={
             "tmp_work_root": TMP_ROOT,
@@ -156,13 +156,13 @@ if env["machine"] == "snellius":
                 "myoutfields.txt",
                 ".gitignore",
             ],
-            "tmp_skip_teardown": True,  # keep on scratch for debugging
+            # "tmp_skip_teardown": True,  # keep on scratch for debugging
         }
     )
     _cn2_tmp = _cn2.model_copy(
         update={
             "tmp_work_root": TMP_ROOT,
-            "tmp_skip_teardown": True,  # keep on scratch for debugging
+            # "tmp_skip_teardown": True,  # keep on scratch for debugging
         }
     )
 
