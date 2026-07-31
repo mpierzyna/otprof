@@ -145,34 +145,60 @@ if env["machine"] == "snellius":
     # Update: took ~9h, so set to 12h with buffer for copying and memory bandwith saturation.
     # tmp-dir behaviour is configured per substage now. Copies, so the shared `_wrf`/`_cn2`
     # instances used by `p_default` keep their defaults.
+    TMP_ROOT = "/scratch-shared/mpierzyna/"
     _wrf_tmp = _wrf.model_copy(
         update={
-            "tmp_teardown_globs": [
+            "tmp_work_root": TMP_ROOT,
+            "tmp_teardown_globs": [  # move only settings and scripts back
                 "setup_wrf.sh",
                 "run_wrf.sh",
                 "namelist.input",
                 "myoutfields.txt",
                 ".gitignore",
-            ],  # move only settings back
+            ],
             "tmp_skip_teardown": True,  # keep on scratch for debugging
         }
     )
-    _cn2_tmp = _cn2.model_copy(update={"tmp_skip_teardown": True})  # keep on scratch for debugging
+    _cn2_tmp = _cn2.model_copy(
+        update={
+            "tmp_work_root": TMP_ROOT,
+            "tmp_skip_teardown": True,  # keep on scratch for debugging
+        }
+    )
 
+    # Pipeline in single slurm job
+    # p_snellius = Pipeline(
+    #     wrf_cn2=StageArray(
+    #         stages={
+    #             "wrf": _wrf_tmp,
+    #             "cn2": _cn2_tmp,
+    #             # "sim_done": _sim_done,  # work_dir is the sim dir -> skipped for tmp with a warning
+    #         },
+    #         tmp_work_root=TMP_ROOT,
+    #         resources=Resources(
+    #             n_tasks=32,
+    #             cpus_per_task=1,
+    #             mem_per_cpu="2000M",
+    #             walltime=datetime.timedelta(hours=12),
+    #         ),
+    #     ),
+    # )
+
+    # Pipeline in separate slurm jobs
     p_snellius = Pipeline(
-        wrf_cn2=StageArray(
-            stages={
-                "wrf": _wrf_tmp,
-                "cn2": _cn2_tmp,
-                # "sim_done": _sim_done,  # work_dir is the sim dir -> skipped for tmp with a warning
-            },
-            tmp_work_root="/scratch-shared/mpierzyna/",
-            resources=Resources(
-                n_tasks=8,  # todo: update
-                cpus_per_task=1,
-                mem_per_cpu="1500M",
-                walltime=datetime.timedelta(hours=12),
-            ),
+        wrf=_update_resources(
+            _wrf_tmp,
+            n_tasks=32,
+            cpus_per_task=1,
+            mem_per_cpu="1000M",
+            walltime=datetime.timedelta(hours=12),
+        ),
+        cn2=_update_resources(
+            _cn2_tmp,
+            n_tasks=1,
+            cpus_per_task=16,
+            mem_per_cpu="2000M",
+            walltime=datetime.timedelta(minutes=15),
         ),
     )
 
