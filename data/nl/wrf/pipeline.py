@@ -11,7 +11,7 @@ from wrf_massive.config import yaml_to_dict
 from wrf_massive.stages.forcing import PullCerraStage
 from wrf_massive.stages.misc import GarbageCollectStage, MarkDone, StageArray
 from wrf_massive.stages.postproc.cn2 import Cn2PostProcStage
-from wrf_massive.stages.wps import WPSStage, WPSTmpDirStage
+from wrf_massive.stages.wps import WPSStage
 from wrf_massive.stages.wrf import WRFStage
 
 
@@ -101,9 +101,9 @@ if env["machine"] == "turbulence":
     # For turbulence: preprocessing-only pipeline with tmp dir on SSD
     # Also, artifically increase number of required tasks to avoid filling up filesystem with CERRA and WPS.
     # Turbulence has 48 cores, so requesting 8 cores per job will limit to max. 6 concurrent WPS jobs.
-    _wps_tmp_ssd = WPSTmpDirStage(
-        **_wps.model_dump(),
-        tmp_dir_root="/media/ssd_4tb_qvo/wrf_massive_tmp",
+    # note: model_dump() now carries `tmp_work_root`, so override the key instead of passing it twice
+    _wps_tmp_ssd = WPSStage(
+        **{**_wps.model_dump(), "tmp_work_root": "/media/ssd_4tb_qvo/wrf_massive_tmp"},
     )
     p_preproc = Pipeline(
         cerra=_update_resources(
@@ -120,9 +120,8 @@ if env["machine"] == "turbulence":
     )
 
 if env["machine"] == "delftblue":
-    # _wps_tmp_ssd = WPSTmpDirStage(
-    #     **_wps.model_dump(),
-    #     tmp_dir_root="/tmp/wrf-massive",  # node-local SSD
+    # _wps_tmp_ssd = WPSStage(
+    #     **{**_wps.model_dump(), "tmp_work_root": "/tmp/wrf-massive"},  # node-local SSD
     # )
     p_preproc = Pipeline(
         cerra=_update_resources(
@@ -144,12 +143,28 @@ if env["machine"] == "snellius":
     # Minimum alloc: 16 cores, 28 GB RAM
     # At 32 cores, 0.59s per 10s step -> ca 16x real-time -> 5.5 sim days in 8.25h -> 9.5h with buffer
     # Update: took ~9h, so set to 12h with buffer for copying and memory bandwith saturation.
+    # tmp-dir behaviour is configured per substage now. Copies, so the shared `_wrf`/`_cn2`
+    # instances used by `p_default` keep their defaults.
+    _wrf_tmp = _wrf.model_copy(
+        update={
+            "tmp_teardown_globs": [
+                "setup_wrf.sh",
+                "run_wrf.sh",
+                "namelist.input",
+                "myoutfields.txt",
+                ".gitignore",
+            ],  # move only settings back
+            "tmp_skip_teardown": True,  # keep on scratch for debugging
+        }
+    )
+    _cn2_tmp = _cn2.model_copy(update={"tmp_skip_teardown": True})  # keep on scratch for debugging
+
     p_snellius = Pipeline(
         wrf_cn2=StageArray(
             stages={
-                "wrf": _wrf,
-                "cn2": _cn2,
-                # "sim_done": _sim_done,  # doesn't work with scratch temp.
+                "wrf": _wrf_tmp,
+                "cn2": _cn2_tmp,
+                # "sim_done": _sim_done,  # work_dir is the sim dir -> skipped for tmp with a warning
             },
             tmp_work_root="/scratch-shared/mpierzyna/",
             resources=Resources(
@@ -158,16 +173,6 @@ if env["machine"] == "snellius":
                 mem_per_cpu="1500M",
                 walltime=datetime.timedelta(hours=12),
             ),
-            stage_tmp_teardown_globs={
-                "wrf": [
-                    "setup_wrf.sh",
-                    "run_wrf.sh",
-                    "namelist.input",
-                    "myoutfields.txt",
-                    ".gitignore",
-                ],  # move only settings back
-            },
-            stage_tmp_skip_teardown=["wrf", "cn2"],  # keep on scratch for debugging
         ),
     )
 
