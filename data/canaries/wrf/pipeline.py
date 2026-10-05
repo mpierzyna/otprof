@@ -1,14 +1,16 @@
 """Pipeline for a single 5-day WRF run over the Canary Islands.
 
-Forcing is pulled directly from the Copernicus CDS (CERRA + ERA5), so no local mirror is needed. All stages
-run locally on a single machine (chaos).
+Forcing comes either directly from the Copernicus CDS (CERRA + ERA5, `p_cds`) or from the TU Delft CERRA mirror
+(`p_default`). On HPC, WPS pre-processing runs on DelftBlue (`p_preproc`) and WRF + post-processing on Snellius
+(`p_snellius`); the active pipeline is selected via `env.yaml`.
 """
 
+import datetime
 import logging
 import pathlib
 
 from simulations import sim_canaries
-from wrf_massive.base import Pipeline, Resources, Simulation
+from wrf_massive.base import Pipeline, Resources, Simulation, Stage
 from wrf_massive.config import yaml_to_dict
 from wrf_massive.stages.forcing import CdsRequestSpec, PullCdsStage, PullCerraStage
 from wrf_massive.stages.forcing.variables import (
@@ -20,6 +22,16 @@ from wrf_massive.stages.misc import GarbageCollectStage, MarkDone
 from wrf_massive.stages.postproc.cn2 import Cn2PostProcStage
 from wrf_massive.stages.wps import WPSStage
 from wrf_massive.stages.wrf import WRFStage
+
+
+def _update_resources(stage: Stage, **resources) -> Stage:
+    """Helper to update n_tasks of a stage. Returns deep copy."""
+    import copy
+
+    stage = copy.deepcopy(stage)
+    stage.resources = stage.resources.model_copy(update=resources)
+    return stage
+
 
 # Load host-specific environment settings
 env = yaml_to_dict(pathlib.Path("env.yaml").read_text())
@@ -101,7 +113,7 @@ _wps = WPSStage(
 # Forcing data no longer needed after WPS finished -> clear space.
 _forcing_gc = GarbageCollectStage(
     work_dir=_cerra_cds.work_dir,  # 1_forcing
-    glob_pattern="*.grb",
+    glob_pattern="**/*.grb",  # CDS: flat, mirror: in year subdirs
     armed=True,
     run_cond_fn=_wps.is_done,  # double-check WPS completion
     resources=Resources(n_tasks=1, cpus_per_task=1, mem_per_cpu="1G"),
@@ -160,7 +172,7 @@ p_cds = Pipeline(
     sim_done=_sim_done,
 )
 
-p_local = Pipeline(
+p_default = Pipeline(
     cerra=_cerra,
     wps=_wps,
     forcing_gc=_forcing_gc,
@@ -169,6 +181,61 @@ p_local = Pipeline(
     wps_gc=_wps_gc,
     sim_done=_sim_done,
 )
+
+
+if env["machine"] == "delftblue":
+    # WPS pre-processing with forcing from the TU Delft CERRA mirror. WPS runs dmpar on 4 tasks.
+    p_preproc = Pipeline(
+        cerra=_update_resources(
+            _cerra,
+            n_tasks=1,
+            cpus_per_task=8,
+        ),
+        wps=_update_resources(
+            _wps,
+            n_tasks=4,
+            cpus_per_task=1,
+            mem_per_cpu="4G",
+            walltime=datetime.timedelta(hours=1),
+        ),
+    )
+
+if env["machine"] == "snellius":
+    # For Snellius: run WRF and postproc with more ressources.
+    # Domain size is comparable to the NL campaign (200x125 vs. 144x192), where 32 cores took ~9h per 5.5 sim days.
+    # tmp-dir behaviour is configured per substage. Copies, so the shared `_wrf`/`_cn2` instances used by
+    # `p_default` keep their defaults.
+    TMP_ROOT = pathlib.Path("/scratch-shared/mpierzyna/")
+    _wrf_tmp = _wrf.model_copy(
+        update={
+            "tmp_work_root": TMP_ROOT,
+            "tmp_teardown_globs": [  # move only settings and scripts back
+                "setup_wrf.sh",
+                "run_wrf.sh",
+                "namelist.input",
+                "myoutfields.txt",
+                ".gitignore",
+            ],
+        }
+    )
+    _cn2_tmp = _cn2.model_copy(update={"tmp_work_root": TMP_ROOT})
+
+    p_snellius = Pipeline(
+        wrf=_update_resources(
+            _wrf_tmp,
+            n_tasks=32,
+            cpus_per_task=1,
+            mem_per_cpu="1000M",
+            walltime=datetime.timedelta(hours=12),
+        ),
+        cn2=_update_resources(
+            _cn2_tmp,
+            n_tasks=1,
+            cpus_per_task=16,
+            mem_per_cpu="2000M",
+            walltime=datetime.timedelta(minutes=15),
+        ),
+    )
 
 
 if __name__ == "__main__":

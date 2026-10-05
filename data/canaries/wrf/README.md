@@ -1,8 +1,9 @@
 # WRF simulation — Canary Islands
 
-Workspace to run a single 5-day WRF simulation over the Canary Islands using
-[`wrf_massive`](https://github.com/mpierzyna/wrf-massive). Forcing is downloaded directly from the Copernicus
-Climate Data Store (CDS); all stages run locally on one machine (chaos).
+Workspace to run twelve 5-day WRF simulations (one per month of 2017) over the Canary Islands using
+[`wrf_massive`](https://github.com/mpierzyna/wrf-massive). Forcing is downloaded from the Copernicus
+Climate Data Store (CDS) or the TU Delft CERRA mirror; stages run locally (chaos) or split across DelftBlue (WPS) and
+Snellius (WRF + post-proc).
 
 ## Domain & grid
 
@@ -18,9 +19,9 @@ Climate Data Store (CDS); all stages run locally on one machine (chaos).
 
 ## Simulation
 
-One 5-day net run, **2020-07-01 → 2020-07-06** (summer trade-wind regime), with a **12-hour spin-up** prepended.
-Defined in `simulations.py` as `sim_canaries`; it becomes a `sim_2020-07-01/` directory with the pipeline stages
-below.
+Twelve 5-day net runs in 2017, one per month (**2017-MM-01 → 2017-MM-06**), each with a **12-hour spin-up**
+prepended. Defined in `simulations.py` as `sim_canaries`; each becomes a `sim_2017-MM-01/` directory with the
+pipeline stages below.
 
 ## Physics
 
@@ -62,7 +63,7 @@ Post-processing (`4_postproc/`) computes Cn² and extracts variables into compre
 ## Pipeline stages
 
 ```
-sim_2020-07-01/
+sim_2017-MM-01/
 ├── 1_forcing/     # CERRA + ERA5 grib from CDS (deleted after WPS)
 ├── 2_wps/         # WPS output: met_em*.nc files (deleted after post-proc)
 ├── 3_wrf/         # WRF run directory and wrfout files
@@ -72,19 +73,37 @@ sim_2020-07-01/
 Intermediate data are garbage-collected automatically: grib files are removed once WPS completes; `met_em*.nc`
 files are removed once Cn² output exists.
 
-## Running
+## Machine configurations
 
-The machine profile is `env_chaos.yaml`, symlinked to `env.yaml` (read by `cli.py`). Everything runs locally:
+Select the active machine by symlinking `env.yaml` (read by `cli.py`) to one of the environment files:
 
 ```bash
-# Create the sim dir + simulation.yaml
+ln -sf env_<machine>.yaml env.yaml
+```
+
+| Machine | File | Pipeline | Purpose |
+|---|---|---|---|
+| `chaos` | `env_chaos.yaml` | `p_default` | Full pipeline, forcing from TU Delft CERRA mirror |
+| `chaos` | `env_chaos_cds.yaml` | `p_cds` | Full pipeline, forcing from CDS |
+| `delftblue` | `env_delftblue.yaml` | `p_preproc` | Pull CERRA from mirror + WPS (dmpar, 4 tasks) |
+| `snellius` | `env_snellius.yaml` | `p_snellius` | WRF (32 MPI tasks, 12 h) + Cn² post-proc on scratch |
+
+### Typical two-machine workflow
+
+1. **DelftBlue**: run `p_preproc` to pull CERRA and produce `met_em*.nc` files.
+2. **Snellius**: run `p_snellius` to execute WRF and post-processing on `/scratch-shared`, then copy results back.
+
+## Running
+
+```bash
+# Create the sim dirs + simulation.yaml
 uv run python cli.py init-sims simulations.py sim_canaries
 
-# Run the whole pipeline (or a subset of stages)
-uv run python cli.py run sim_2020-07-01
-uv run python cli.py run --stages cerra,era5 sim_2020-07-01
+# Run a single simulation (or a subset of stages)
+uv run python cli.py run --stages=<stage> sim_2017-01-01
+
+# Submit a SLURM array job (reads sim dirs from .array_sim_dirs)
+sbatch --array=1-N slurm_<machine>.job.sh <stage>
 ```
 
 `wrf_massive` tracks completion via `.done` marker files; finished stages are skipped on re-run.
-
-Machine paths (compiled WPS/WRF, geog data) are set in `env_chaos.yaml`.

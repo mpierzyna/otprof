@@ -1,0 +1,10 @@
+machine: chaos
+
+wps:
+  wps_tmpl_dir: "/data/WRF/v4.5/WPS"
+  geog_data_path: "/data/WRF/DATA/geogV4"
+
+wrf:
+  wrf_tmpl_dir: "/data/WRF/v4.5/WRF"
+
+pipeline: "p_default"
