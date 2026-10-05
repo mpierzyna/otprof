@@ -1,5 +1,0 @@
-# Git ignore for WRF dir
-*
-!.gitignore
-!namelist.input
-!myoutfields.txt
