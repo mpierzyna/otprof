@@ -3,6 +3,16 @@
 
 FORCING_DIR="$1"
 
+# If RUNNER is not specified, default to serial execution, ie no runner.
+# If your mpi is compiled with slurm support, you can set RUNNER="srun" in the job script.
+if [ -z "$RUNNER" ]; then
+  RUNNER=""
+  LOG_EXT="log"
+else
+  # When mpirun/srun is used, logs have suffixes per rank.
+  LOG_EXT="log.0000"
+fi
+
 usage () {
     echo "Usage: $0 <FORCING_DIR>"
     echo "  FORCING_DIR: Directory containing forcing data (CERRA and ERA5)"
@@ -30,11 +40,15 @@ if [ -z "$FORCING_DIR" ]; then
     usage
 fi
 
+# Debug output
+echo "FORCING_DIR=${FORCING_DIR}"
+echo "RUNNER=${RUNNER} with log extension ${LOG_EXT}."
+
 # Run geogrid, unless it already completed successfully.
-if ! log_ok geogrid.log; then
+if ! log_ok geogrid.${LOG_EXT}; then
     ln -sf namelist.wps.CERRA namelist.wps
-    ./geogrid.exe
-    check_log geogrid.log  # check for successful completion because geogrib doesn't exit with error code on failure
+    $RUNNER ./geogrid.exe
+    check_log geogrid.${LOG_EXT}  # check for successful completion because geogrib doesn't exit with error code on failure
 fi
 
 # Process CERRA data, unless ungrib already completed successfully for it.
@@ -60,9 +74,9 @@ if ! log_ok ungrib_ERA5.log; then
 fi
 
 # Run metgrid and delete intermediate files after completion, unless metgrid already completed successfully.
-if ! log_ok metgrid.log; then
-    mpirun ./metgrid.exe
-    check_log metgrid.log  # check for successful completion because metgrid doesn't exit with error code on failure
+if ! log_ok metgrid.${LOG_EXT}; then
+    $RUNNER ./metgrid.exe
+    check_log metgrid.${LOG_EXT}  # check for successful completion because metgrid doesn't exit with error code on failure
     rm -r CERRA:*
     rm -r ERA5:*
 fi
