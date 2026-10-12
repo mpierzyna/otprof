@@ -30,6 +30,7 @@ module load slurm
 mkdir -p /tmp/wrf-massive
 
 # Run (unbuffered)
+RUNNER=srun \
 OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK \
 OPENBLAS_NUM_THREADS=$SLURM_CPUS_PER_TASK \
 MKL_NUM_THREADS=$SLURM_CPUS_PER_TASK \

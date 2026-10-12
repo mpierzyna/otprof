@@ -195,7 +195,7 @@ if env["machine"] == "delftblue":
             _wps,
             n_tasks=4,
             cpus_per_task=1,
-            mem_per_cpu="4G",
+            mem_per_cpu="3G",
             walltime=datetime.timedelta(hours=1),
         ),
     )
