@@ -6,18 +6,11 @@ Forcing comes either directly from the Copernicus CDS (CERRA + ERA5, `p_cds`) or
 """
 
 import datetime
-import logging
 import pathlib
 
-from simulations import sim_canaries
 from wrf_massive.base import Pipeline, Resources, Simulation, Stage
 from wrf_massive.config import yaml_to_dict
-from wrf_massive.stages.forcing import CdsRequestSpec, PullCdsStage, PullCerraStage
-from wrf_massive.stages.forcing.variables import (
-    CERRA_PRESSURE_LEVEL_VARIABLES,
-    CERRA_PRESSURE_LEVELS,
-    CERRA_SINGLE_LEVEL_VARIABLES,
-)
+from wrf_massive.stages.forcing import PullCerraStage
 from wrf_massive.stages.misc import GarbageCollectStage, MarkDone
 from wrf_massive.stages.postproc.cn2 import Cn2PostProcStage
 from wrf_massive.stages.wps import WPSStage
@@ -36,64 +29,8 @@ def _update_resources(stage: Stage, **resources) -> Stage:
 # Load host-specific environment settings
 env = yaml_to_dict(pathlib.Path("env.yaml").read_text())
 
-# ERA5 supplies the fields CERRA lacks for WRF: the 4-layer soil state, and 10m wind as u/v components
-# (CERRA archives 10m wind only as speed/direction). metgrid merges these with CERRA (fg_name='ERA5','CERRA').
-ERA5_GAPFILL_VARIABLES = [
-    "10m_u_component_of_wind",
-    "10m_v_component_of_wind",
-    "soil_temperature_level_1",
-    "soil_temperature_level_2",
-    "soil_temperature_level_3",
-    "soil_temperature_level_4",
-    "volumetric_soil_water_layer_1",
-    "volumetric_soil_water_layer_2",
-    "volumetric_soil_water_layer_3",
-    "volumetric_soil_water_layer_4",
-]
 
-# CERRA reanalysis (analysis product) from CDS. Its projected 5.5km grid does not support geographic
-# subsetting, so the full native domain is downloaded (use_area=False) and cropped by WPS.
-_cerra_cds = PullCdsStage(
-    work_dir="1_forcing",
-    prefix="CERRA",
-    requests=[
-        CdsRequestSpec(
-            dataset="reanalysis-cerra-pressure-levels",
-            variables=CERRA_PRESSURE_LEVEL_VARIABLES,
-            levels=CERRA_PRESSURE_LEVELS,
-            file_suffix="PRES",
-            product_type=["analysis"],
-            use_area=False,
-            extra_params={"data_type": ["reanalysis"]},
-        ),
-        CdsRequestSpec(
-            dataset="reanalysis-cerra-single-levels",
-            variables=CERRA_SINGLE_LEVEL_VARIABLES,
-            file_suffix="SFC",
-            product_type=["analysis"],
-            use_area=False,
-            extra_params={"data_type": ["reanalysis"], "level_type": ["surface_or_atmosphere"]},
-        ),
-    ],
-    resources=Resources(n_tasks=1, cpus_per_task=1, mem_per_cpu="4G"),
-)
-
-# ERA5 gap-filler (soil + 10m wind). ERA5 supports lat/lon cropping to Simulation.area, validated here
-# against the WRF domain derived from namelist.tmpl.wps.
-_era5_cds = PullCdsStage(
-    work_dir="1_forcing",
-    prefix="ERA5",
-    namelist_wps_path="namelist.tmpl.wps",
-    requests=[
-        CdsRequestSpec(
-            dataset="reanalysis-era5-single-levels",
-            variables=ERA5_GAPFILL_VARIABLES,
-            file_suffix="SFC",
-        ),
-    ],
-    resources=Resources(n_tasks=1, cpus_per_task=1, mem_per_cpu="1G"),
-)
-
+# Preproc
 _cerra = PullCerraStage(
     work_dir="1_forcing",
     remote_path="tudelft:staff-umbrella/HBaki/CERRA",
@@ -104,7 +41,7 @@ _cerra = PullCerraStage(
 
 _wps = WPSStage(
     work_dir="2_wps",
-    forcing_dir=_cerra_cds.work_dir,  # 1_forcing
+    forcing_dir=_cerra.work_dir,  # 1_forcing
     namelist_tmpl_path="namelist.tmpl.wps",
     **env["wps"],
     resources=Resources(n_tasks=1, cpus_per_task=1, mem_per_cpu="16G"),  # serial WPS
@@ -112,7 +49,7 @@ _wps = WPSStage(
 
 # Forcing data no longer needed after WPS finished -> clear space.
 _forcing_gc = GarbageCollectStage(
-    work_dir=_cerra_cds.work_dir,  # 1_forcing
+    work_dir=_cerra.work_dir,  # 1_forcing
     glob_pattern="**/*.grb",  # CDS: flat, mirror: in year subdirs
     armed=True,
     run_cond_fn=_wps.is_done,  # double-check WPS completion
@@ -160,28 +97,6 @@ _sim_done = MarkDone(
     resources=Resources(n_tasks=1, cpus_per_task=1, mem_per_cpu="1G"),
 )
 
-# Assemble pipeline
-p_cds = Pipeline(
-    cerra=_cerra_cds,
-    era5=_era5_cds,
-    wps=_wps,
-    forcing_gc=_forcing_gc,
-    wrf=_wrf,
-    cn2=_cn2,
-    wps_gc=_wps_gc,
-    sim_done=_sim_done,
-)
-
-p_default = Pipeline(
-    cerra=_cerra,
-    wps=_wps,
-    forcing_gc=_forcing_gc,
-    wrf=_wrf,
-    cn2=_cn2,
-    wps_gc=_wps_gc,
-    sim_done=_sim_done,
-)
-
 
 if env["machine"] == "delftblue":
     # WPS pre-processing with forcing from the TU Delft CERRA mirror. WPS runs dmpar on 4 tasks.
@@ -216,9 +131,15 @@ if env["machine"] == "snellius":
                 "myoutfields.txt",
                 ".gitignore",
             ],
+            "tmp_skip_teardown": True,  # leave symlink in place so Cn2 can postproc
         }
     )
-    _cn2_tmp = _cn2.model_copy(update={"tmp_work_root": TMP_ROOT})
+    _cn2_tmp = _cn2.model_copy(
+        update={
+            "tmp_work_root": TMP_ROOT,
+            "tmp_skip_teardown": True,
+        }
+    )
 
     p_snellius = Pipeline(
         wrf=_update_resources(
@@ -236,8 +157,3 @@ if env["machine"] == "snellius":
             walltime=datetime.timedelta(minutes=15),
         ),
     )
-
-
-if __name__ == "__main__":
-    logging.basicConfig(level="INFO")
-    p_cds.run(sim_canaries)

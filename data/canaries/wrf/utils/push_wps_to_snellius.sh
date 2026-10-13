@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Push WPS from TU Delft scratch to Snellius scratch.
+# EXECUTE ON DELFTBLUE to push WPS data to Snellius.
 # Execute from workspace root (ie one level above)
 
 # Pass 'CONFIRM' to actually run
