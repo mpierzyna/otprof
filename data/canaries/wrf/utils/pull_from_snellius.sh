@@ -10,6 +10,6 @@ else
 fi
 
 # Due to storage limitations, data is partially in project folder...
-rclone copy ${DRYRUN} --progress --transfers=8 --include 'met_em*' --include 'wrfout*cn2.nc' snellius:/home/mpierzyna/prjs1785/otprof/data/nl/wrf .
+rclone copy ${DRYRUN} --progress --transfers=8 --include 'met_em*' --include 'wrfout*cn2.nc' snellius:/home/mpierzyna/prjs1785/otprof/data/canaries/wrf .
 # ...and scratch (no met_em on scratch)
 rclone copy ${DRYRUN} --progress --transfers=8 --include 'wrfout*cn2.nc' snellius:/scratch-shared/mpierzyna/ .
