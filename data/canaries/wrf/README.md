@@ -9,10 +9,10 @@ Snellius (WRF + post-proc).
 
 | Parameter | Value |
 |---|---|
-| Projection | Lambert conformal (tangent, truelat 28.4°) |
-| Center | 28.4°N, 15.7°W |
-| Grid size | 280 × 150 (W–E × S–N) |
-| Horizontal resolution | 2 km (~558 × 298 km, covers all seven islands) |
+| Projection | Lambert conformal (tangent, truelat 28.25°) |
+| Center | 28.268°N, 16.805°W |
+| Grid size | 200 × 125 staggered (199 × 124 mass points, W–E × S–N) |
+| Horizontal resolution | 2 km (~398 × 248 km; mass grid spans 27.1–29.4°N, 18.8–14.8°W) |
 | Vertical levels | 101 eta levels |
 | Model top | 1000 Pa |
 | Time step | 10 s |
