@@ -5,7 +5,15 @@ description = "OTProf: high-resolution profiles of optical turbulence (Cn2) from
 requires-python = ">=3.12"
 license = "GPL-3.0-only"
 license-files = ["COPYING"]
-dependencies = []
+dependencies = [
+    "numpy>=2.0",
+    "xarray>=2024.1",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+]
 
 [build-system]
 requires = ["hatchling"]
@@ -16,3 +24,6 @@ packages = ["src/otprof"]
 
 [tool.ruff]
 line-length = 120
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
