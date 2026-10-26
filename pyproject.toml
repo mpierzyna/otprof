@@ -8,11 +8,20 @@ license-files = ["COPYING"]
 dependencies = [
     "numpy>=2.0",
     "xarray>=2024.1",
+    "pydantic>=2.0",
+]
+
+[project.optional-dependencies]
+# Building training data (WRF adapter interpolation, ...)
+data = [
+    "scipy>=1.11",
+    "netcdf4>=1.6",
 ]
 
 [dependency-groups]
 dev = [
     "pytest>=8",
+    "scipy>=1.11",
 ]
 
 [build-system]
