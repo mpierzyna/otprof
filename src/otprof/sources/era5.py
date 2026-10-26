@@ -1,4 +1,8 @@
-"""ERA5 (pressure levels + surface) as delivered by the ARCO-ERA5 zarr store → canonical inputs (`otprof.schema`)."""
+"""ERA5 (pressure levels + surface) from the ARCO-ERA5 zarr store → canonical inputs (`otprof.schema`).
+
+- `fetch`: open ERA5 for given times and area (needs `otprof[data]`: gcsfs, zarr)
+- `standardize`: ERA5 in ARCO names and units → canonical inputs
+"""
 
 from __future__ import annotations
 
@@ -34,6 +38,59 @@ RENAME = {
 }
 
 G = 9.81  # m s-2, as in the training data
+
+ARCO_URL = "gs://gcp-public-data-arco-era5/ar/full_37-1h-0p25deg-chunk-1.zarr-v3"
+
+# Fields used by otprof (and the research pipelines), in ARCO names
+VARIABLES = [
+    # Profiles
+    "geopotential",
+    "potential_vorticity",
+    "vertical_velocity",
+    "u_component_of_wind",
+    "v_component_of_wind",
+    "temperature",
+    "specific_humidity",
+    # Surface
+    "soil_type",
+    "land_sea_mask",
+    "angle_of_sub_gridscale_orography",
+    "anisotropy_of_sub_gridscale_orography",
+    "geopotential_at_surface",
+    "boundary_layer_height",
+    "boundary_layer_dissipation",
+    "surface_pressure",
+    "friction_velocity",
+    "instantaneous_surface_sensible_heat_flux",
+    "10m_u_component_of_wind",
+    "10m_v_component_of_wind",
+    "2m_temperature",
+    "mean_sea_level_pressure",
+    "surface_latent_heat_flux",
+    "mean_surface_net_short_wave_radiation_flux",
+    "low_cloud_cover",
+    "skin_temperature",
+]
+
+
+def fetch(
+    times,
+    *,
+    lon_min: float,
+    lon_max: float,
+    lat_min: float,
+    lat_max: float,
+    variables: list[str] = VARIABLES,
+) -> xr.Dataset:
+    """ERA5 at `times` for the area (ARCO longitudes run 0..360), opened lazily from the ARCO-ERA5 store.
+
+    Nothing is downloaded until the values are used (e.g. `.to_netcdf(...)`). The store has no spatial chunks, so
+    every time step is downloaded for the whole globe and cut to the area afterwards.
+    """
+    ds = xr.open_zarr(ARCO_URL, chunks=None, storage_options=dict(token="anon"))
+    ds = ds.sel(time=times)[variables]
+    # ERA5 latitude is stored in descending order
+    return ds.sel(longitude=slice(lon_min, lon_max), latitude=slice(lat_max, lat_min))
 
 
 def standardize(ds: xr.Dataset) -> xr.Dataset:

@@ -133,6 +133,15 @@ def sfc_ct2_w71(
     return ct2.assign_attrs(long_name="Surface CT2 at 2 m (W71 flux model)", units="K2 m-2/3")
 
 
+def wind(u: xr.DataArray, v: xr.DataArray) -> dict[str, xr.DataArray]:
+    """Wind speed `m` [m s-1] and the direction the wind comes from `d` [deg], also as `d_sin`, `d_cos`."""
+    m = np.sqrt(u**2 + v**2).astype(np.float32).assign_attrs(long_name="Wind speed", units="m s-1")
+    d = np.rad2deg(np.arctan2(-u, -v)).astype(np.float32).assign_attrs(long_name="Wind direction", units="deg")
+    d_sin = np.sin(np.deg2rad(d)).astype(np.float32).assign_attrs(long_name="Sine of wind direction", units="1")
+    d_cos = np.cos(np.deg2rad(d)).astype(np.float32).assign_attrs(long_name="Cosine of wind direction", units="1")
+    return {"m": m, "d": d, "d_sin": d_sin, "d_cos": d_cos}
+
+
 def time_features(time: xr.DataArray) -> dict[str, xr.DataArray]:
     """Hour of day and day of year as sine / cosine."""
     t = time.dt
