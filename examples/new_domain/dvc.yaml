@@ -4,8 +4,10 @@ stages:
     foreach: ${domains}
     do:
       cmd: python step_1_download_era5.py ${key}
-      params: [domains.${key}.area]
-      deps: [step_1_download_era5.py]
+      params:
+        - domains.${key}.area
+      deps:
+        - step_1_download_era5.py
       outs:
         - data/${key}/1_raw/era5.nc:
             persist: true
@@ -13,24 +15,41 @@ stages:
     foreach: ${domains}
     do:
       cmd: python step_2_align.py ${key}
-      params: [domains.${key}.crop, domains.${key}.dist_th]
-      deps: [step_2_align.py, data/${key}/1_raw/era5.nc]
-      outs: [data/${key}/2_aligned/era5.nc, data/${key}/2_aligned/wrf.nc]
+      params:
+        - domains.${key}.crop
+        - domains.${key}.dist_th
+      deps:
+        - step_2_align.py
+        - data/${key}/1_raw/era5.nc
+      outs:
+        - data/${key}/2_aligned/era5.nc
+        - data/${key}/2_aligned/wrf.nc
   features_targets:
     foreach: ${domains}
     do:
       cmd: python step_3_features_targets.py ${key}
-      deps: [step_3_features_targets.py, data/${key}/2_aligned/era5.nc, data/${key}/2_aligned/wrf.nc]
-      outs: [data/${key}/3_features/y_wrf_all.nc, data/${key}/3_features/X_era5_pl.nc]
+      deps:
+        - step_3_features_targets.py
+        - data/${key}/2_aligned/era5.nc
+        - data/${key}/2_aligned/wrf.nc
+      outs:
+        - data/${key}/3_features/y_wrf_all.nc
+        - data/${key}/3_features/X_era5_pl.nc
   filter_cn2:
     foreach: ${domains}
     do:
       cmd: python step_4_filter_cn2.py ${key}
-      deps: [step_4_filter_cn2.py, data/${key}/3_features/y_wrf_all.nc]
-      outs: [data/${key}/3_features/y_wrf.nc]
+      deps:
+        - step_4_filter_cn2.py
+        - data/${key}/3_features/y_wrf_all.nc
+      outs:
+        - data/${key}/3_features/y_wrf.nc
   wrf_to_pl:
     foreach: ${domains}
     do:
       cmd: python step_5_wrf_to_pl.py ${key}
-      deps: [step_5_wrf_to_pl.py, data/${key}/2_aligned/wrf.nc]
-      outs: [data/${key}/4_features_interp/X_wrf_pl.nc]
+      deps:
+        - step_5_wrf_to_pl.py
+        - data/${key}/2_aligned/wrf.nc
+      outs:
+        - data/${key}/4_features_interp/X_wrf_pl.nc
