@@ -21,6 +21,11 @@ data = [
     "zarr>=2.16",
     "dask>=2024.1",
     "pyyaml>=6",
+    "ecmwf-datastores-client>=0.4",
+    "cfgrib>=0.9.15",
+    "eccodes>=2.41",
+    "eccodeslib>=2.50.0.33",
+    "tqdm>=4.60",
 ]
 # Loading and running models: the network, safetensors weights
 torch = [
