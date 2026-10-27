@@ -65,7 +65,8 @@ applied to ERA5: training and inference inputs come from the same function.
 
 1. Compute it in `otprof.features.make_inputs` from the canonical variables (`otprof.schema.VARIABLES`); if it needs a
    new variable, add it to the schema and to every source adapter in `otprof.sources`.
-2. Bump `otprof.features.FEATURES_VERSION` and regenerate the golden test data (`tests/data/make_golden.py`).
+2. Bump the MAJOR version in `otprof.features.FEATURES_VERSION` (a new feature changes what models expect) and
+   regenerate the golden test data (`tests/data/make_golden.py`).
 3. Rerun steps 3 and 5, check the new variable in the output files, and retrain.
 
 To try a feature without touching otprof, add it in your own step script after `make_inputs`, as the research

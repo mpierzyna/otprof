@@ -1,3 +1,5 @@
+import re
+
 import pytest
 
 from otprof import schema
@@ -37,3 +39,10 @@ def test_tk_or_th_required(canonical):
     ds = canonical.rename(tk="th")
     ds["th"].attrs = {"units": "K"}
     schema.validate(ds)
+
+
+def test_versions_are_semver():
+    from otprof.features import FEATURES_VERSION
+
+    for v in (schema.SCHEMA_VERSION, FEATURES_VERSION):
+        assert re.fullmatch(r"\d+\.\d+\.\d+", v), v

@@ -1,4 +1,4 @@
-"""Regenerate the golden model inputs after a deliberate change (bump `otprof.features.FEATURES_VERSION` first):
+"""Regenerate the golden model inputs after a deliberate MAJOR change (bump `otprof.features.FEATURES_VERSION` first):
 
     uv run python tests/data/make_golden.py
 

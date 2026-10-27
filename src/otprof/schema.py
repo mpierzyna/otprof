@@ -16,7 +16,10 @@ import numpy as np
 import pydantic
 import xarray as xr
 
-SCHEMA_VERSION = 1
+# Version of this input contract (semver). MAJOR: what an adapter must deliver changes incompatibly (variable removed or
+# renamed, units, sign conventions, level set). MINOR: compatible addition (new optional variable). PATCH: no change to
+# what is accepted (descriptions, plausible ranges).
+SCHEMA_VERSION = "1.0.0"
 
 TGrid = Literal["pressure", "model"]
 

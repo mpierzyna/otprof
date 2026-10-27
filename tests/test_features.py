@@ -3,7 +3,7 @@ import pytest
 import xarray as xr
 
 from otprof import schema
-from otprof.features import FEATURES, make_inputs, potential_temperature
+from otprof.features import FEATURES, FEATURES_VERSION, make_inputs, potential_temperature
 
 
 def test_outputs_and_levels(canonical):
@@ -12,7 +12,8 @@ def test_outputs_and_levels(canonical):
     assert X["level"].values.tolist() == list(schema.P_LEVELS_HPA[:-1])  # 20 hPa only enters the top gradient
     assert X.sizes["level"] == 30
     assert "level" not in X["ust"].dims and "level" in X["S"].dims
-    assert X.attrs["otprof_features_version"] >= 1
+    assert X.attrs["otprof_features_version"] == FEATURES_VERSION
+    assert X.attrs["otprof_schema_version"] == schema.SCHEMA_VERSION
 
 
 def test_gradients_to_level_above(canonical):

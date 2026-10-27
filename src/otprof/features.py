@@ -1,7 +1,7 @@
 """Model inputs (unscaled X) from the canonical input dataset (`otprof.schema`).
 
 The same function builds the training inputs (from WRF or ERA5) and the inputs at inference (ERA5, later GFS).
-Bump `FEATURES_VERSION` whenever the output changes.
+Bump `FEATURES_VERSION` (semver, see there) whenever the output changes.
 """
 
 from __future__ import annotations
@@ -14,7 +14,10 @@ import xarray as xr
 from otprof import schema
 from otprof.physics import most
 
-FEATURES_VERSION = 1
+# Version of the model inputs (semver). MAJOR: `FEATURES` or the values of any feature change, so models trained on the
+# old inputs need retraining. MINOR: compatible addition (e.g. new metadata). PATCH: no change to the output
+# (refactoring, docs). A model records the version it was trained with; inputs fit if the MAJOR versions are equal.
+FEATURES_VERSION = "1.0.0"
 
 # All inputs of SQF-H, in model order
 FEATURES = [
@@ -104,7 +107,9 @@ def make_inputs(
     X = xr.Dataset({k: X[k] for k in FEATURES})
     if grid == "pressure":
         X = X.assign_coords(level=list(schema.P_LEVELS_HPA[:-1]))
-    return X.assign_attrs(otprof_features_version=FEATURES_VERSION, otprof_grid=grid)
+    return X.assign_attrs(
+        otprof_features_version=FEATURES_VERSION, otprof_schema_version=schema.SCHEMA_VERSION, otprof_grid=grid
+    )
 
 
 def potential_temperature(tk: xr.DataArray, p: xr.DataArray) -> xr.DataArray:

@@ -13,5 +13,7 @@ DATA = pathlib.Path(__file__).parent / "data"
 def test_era5_inputs_golden():
     X = make_inputs(era5.standardize(xr.open_dataset(DATA / "era5_arco_sample.nc")))
     golden = xr.open_dataset(DATA / "era5_inputs_golden.nc")
-    assert golden.attrs["otprof_features_version"] == FEATURES_VERSION, "FEATURES_VERSION bumped: regenerate golden"
-    xr.testing.assert_allclose(X, golden, rtol=1e-6)
+    major = golden.attrs["otprof_features_version"].split(".")[0]
+    assert major == FEATURES_VERSION.split(".")[0], "FEATURES_VERSION major bumped: regenerate golden"
+    # MINOR / PATCH changes keep the values of the existing outputs
+    xr.testing.assert_allclose(X[list(golden.data_vars)], golden, rtol=1e-6)
