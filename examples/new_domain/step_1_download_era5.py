@@ -20,7 +20,11 @@ if __name__ == "__main__":
     times = dataset.wrf_times(wrf_files)
     print(f"{len(wrf_files)} WRF files, {len(times)} time steps")
 
-    ds = era5.fetch(times, **params["area"])
+    ds, sizes = era5.fetch(times, **params["area"])
     print(ds)
+    print(
+        f"{sizes['download'] / 1e9:.1f} GB to download ({sizes['n_chunks']} chunks), "
+        f"{sizes['on_disk'] / 1e9:.1f} GB on disk"
+    )
     ds.to_netcdf(out_file)
     print(f"Wrote {out_file}")

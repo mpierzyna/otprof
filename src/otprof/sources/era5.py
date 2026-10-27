@@ -1,11 +1,12 @@
 """ERA5 (pressure levels + surface) from the ARCO-ERA5 zarr store → canonical inputs (`otprof.schema`).
 
-- `fetch`: open ERA5 for given times and area (needs `otprof[data]`: gcsfs, zarr)
+- `fetch`: open ERA5 for given times and area, with its download size (needs `otprof[data]`: gcsfs, zarr)
 - `standardize`: ERA5 in ARCO names and units → canonical inputs
 """
 
 from __future__ import annotations
 
+import numpy as np
 import xarray as xr
 
 from otprof import schema
@@ -81,16 +82,50 @@ def fetch(
     lat_min: float,
     lat_max: float,
     variables: list[str] = VARIABLES,
-) -> xr.Dataset:
+) -> tuple[xr.Dataset, dict[str, int]]:
     """ERA5 at `times` for the area (ARCO longitudes run 0..360), opened lazily from the ARCO-ERA5 store.
 
-    Nothing is downloaded until the values are used (e.g. `.to_netcdf(...)`). The store has no spatial chunks, so
-    every time step is downloaded for the whole globe and cut to the area afterwards.
+    Returns the dataset and its sizes [bytes]: `on_disk` (the selection itself) and `download` (the storage chunks
+    the selection touches, uncompressed, in `n_chunks` chunks). Nothing is downloaded until the values are used
+    (e.g. `.to_netcdf(...)`). The store has no spatial chunks, so every time step is downloaded for the whole globe
+    and cut to the area afterwards: `download` is much larger than `on_disk`.
     """
-    ds = xr.open_zarr(ARCO_URL, chunks=None, storage_options=dict(token="anon"))
-    ds = ds.sel(time=times)[variables]
+    full = xr.open_zarr(ARCO_URL, chunks=None, storage_options=dict(token="anon"))
     # ERA5 latitude is stored in descending order
-    return ds.sel(longitude=slice(lon_min, lon_max), latitude=slice(lat_max, lat_min))
+    ds = full.sel(time=times)[variables].sel(longitude=slice(lon_min, lon_max), latitude=slice(lat_max, lat_min))
+    touched = chunks_touched(ds, full)
+    sizes = {
+        "on_disk": ds.nbytes,
+        "download": sum(nbytes for _, nbytes in touched.values()),
+        "n_chunks": sum(n for n, _ in touched.values()),
+    }
+    return ds, sizes
+
+
+def chunks_touched(subset: xr.Dataset, full: xr.Dataset) -> dict[str, tuple[int, int]]:
+    """Per variable of `subset`: number of storage chunks of `full` it touches and their uncompressed size [bytes].
+
+    `subset` must be a selection of `full` (e.g. `full.sel(...)`). Reading a subset reads every chunk it touches
+    completely, so this is the amount of data transferred (before compression), not `subset.nbytes`. The chunk shape
+    comes from the variable encoding of `full` (zarr or netCDF chunks); unchunked dims count as one chunk. Edge chunks
+    are counted at full size.
+    """
+    out = {}
+    for name, da in subset.data_vars.items():
+        enc = full[name].encoding
+        chunks = enc.get("preferred_chunks") or dict(zip(full[name].dims, enc.get("chunks") or full[name].shape))
+        n_chunks = 1
+        for dim in da.dims:
+            size = chunks.get(dim, full.sizes[dim])
+            if dim in full.indexes:
+                pos = full.indexes[dim].get_indexer(subset.indexes[dim])
+                assert (pos >= 0).all(), f"{name}: `{dim}` values of the subset not found in the full dataset"
+            else:
+                pos = np.arange(da.sizes[dim])
+            n_chunks *= len(np.unique(pos // size))
+        chunk_bytes = int(np.prod([chunks.get(d, full.sizes[d]) for d in full[name].dims])) * da.dtype.itemsize
+        out[name] = (n_chunks, n_chunks * chunk_bytes)
+    return out
 
 
 def standardize(ds: xr.Dataset) -> xr.Dataset:
