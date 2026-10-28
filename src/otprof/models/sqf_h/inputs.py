@@ -159,7 +159,7 @@ def make_targets(ds_y: xr.Dataset) -> xr.Dataset:
     """The target variables SQF-H adds to the WRF targets (or to query heights `z_agl`): the warped height `lz` of
     `z_agl` and, if `cn2` is present, `lcn2` = log10 Cn2 (NaN and -inf for masked or zero Cn2)."""
     ds_y = ds_y.copy()
-    ds_y["lz"] = compute_warped_height(ds_y["z_agl"])
+    ds_y["lz"] = compute_warped_height(ds_y["z_agl"]).assign_attrs(long_name="Warped height above ground", units="1")
     if "cn2" in ds_y:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=RuntimeWarning)  # log10(0) and NaN: dropped by the pipeline
