@@ -31,6 +31,7 @@ uv add "otprof[torch,hub] @ git+https://github.com/mpierzyna/otprof"
 | `data` | building training data: ERA5 download, alignment with WRF, NetCDF / YAML files |
 | `torch` | loading and running models |
 | `hub` | downloading the published model from Hugging Face |
+| `gfs` | GFS forecasts (GRIB decoding with eccodes) |
 | `train` | training (Lightning, TensorBoard; includes `torch`) |
 
 Without optional parts, otprof only needs numpy, xarray and pydantic (the physics, the input schema and the data
@@ -41,6 +42,7 @@ processing).
 | Folder | What it shows |
 |---|---|
 | [`examples/predict_era5`](examples/predict_era5/README.md) | Cn2 profiles for any region from ERA5 with the published model |
+| [`examples/predict_gfs`](examples/predict_gfs/README.md) | Cn2 profile forecasts at given locations from GFS with the published model |
 | [`examples/new_domain`](examples/new_domain/README.md) | building a training dataset from WRF Cn2 simulations of a new domain |
 | `examples/train.py`, `examples/configs` | training a model from an experiment config |
 | [`paper`](paper/README.md) | reproducing the experiments of the paper |
@@ -62,7 +64,7 @@ y = predict(predictor, X)                         # lcn2, QKE, TSQ, EL_PBL, r0, 
 | Module | Contents |
 |---|---|
 | `otprof.schema` | the canonical input dataset: names, units, pressure levels every data source is converted to |
-| `otprof.sources` | data sources: `era5` (download, `standardize`), `wrf` (WRF Cn2 output, `standardize`) |
+| `otprof.sources` | data sources: `era5`, `gfs` and `gfs_archive` (download, `standardize`), `wrf` (WRF Cn2 output, `standardize`) |
 | `otprof.dataset` | building a training dataset: alignment of ERA5 and WRF, targets, Cn2 filter |
 | `otprof.features` | building blocks of model inputs (potential temperature, wind, surface CT2, time features) |
 | `otprof.models` | one subpackage per model (`sqf_h`: its inputs, data processing, network and training module); saving and loading networks (`bundle`) |

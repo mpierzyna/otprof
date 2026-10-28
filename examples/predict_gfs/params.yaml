@@ -1,0 +1,14 @@
+# What to predict. Each step script reads this file; outputs go to data/.
+
+# GFS forecast: start of the run (UTC; runs at 00, 06, 12, 18 UTC, available on AWS from 2021) and lead times [h]
+cycle: "2025-06-01 00:00"
+leads: [3, 6, 9, 12]
+
+# Locations: name -> [latitude, longitude] in degrees north / east; the nearest GFS grid point is used
+locations:
+  cabauw: [51.97, 4.93]
+  la_palma: [28.76, -17.89]
+  paranal: [-24.63, -70.40]
+
+# Model: Hugging Face repo id or a local model directory. null = the published SQF-H at the revision of this otprof
+model: null

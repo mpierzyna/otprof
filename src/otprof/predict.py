@@ -160,9 +160,15 @@ def predict(
         if f"otprof_{key}" in X.attrs and key in predictor.config:
             check_versions(predictor.config, {key: X.attrs[f"otprof_{key}"]}, source="model")
 
-    # Inputs -> model space, stacked to (sample, bottom_top)
+    # Coordinates of the inputs other than the dims (e.g. lat, lon of `loc`) are restored on the output as they are
+    # (stacking and unstacking would broadcast them over all sample dims)
     dims = _sample_dims(X[predictor.vars_X])
-    X_s = predictor.pipeline.forward_X(_stack(X[predictor.vars_X], dims))
+    coords = {c: X.coords[c] for c in X.coords if c not in X.dims and "bottom_top" not in X.coords[c].dims}
+    if dims == ["sample"]:
+        coords = {}  # a pipeline split: the sample index holds the coordinates
+
+    # Inputs -> model space, stacked to (sample, bottom_top)
+    X_s = predictor.pipeline.forward_X(_stack(X[predictor.vars_X].drop_vars(list(coords)), dims))
     # Per-column variables repeated over the levels, constant profiles (e.g. `p` on pressure levels) over the samples
     shape = (X_s.sizes["sample"], X_s.sizes["bottom_top"])
     template = xr.DataArray(np.empty(shape, dtype=bool), dims=("sample", "bottom_top"))
@@ -211,7 +217,9 @@ def predict(
     if "lcn2" in ds_y:
         ds_y = ds_y.assign(get_integrated_params(ds_y["lcn2"], ds_y["z_agl"]))
     ds_y = ds_y.assign_attrs(otprof_oqm=int(oqm and bool(predictor.pipeline.post_y)))
-    return ds_y if dims == ["sample"] else ds_y.unstack("sample").transpose(*dims, "bottom_top")
+    if dims == ["sample"]:
+        return ds_y
+    return ds_y.unstack("sample").transpose(*dims, "bottom_top").assign_coords(coords)
 
 
 def get_integrated_params(lcn2: xr.DataArray, z_agl: xr.DataArray) -> dict[str, xr.DataArray]:

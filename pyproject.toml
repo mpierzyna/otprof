@@ -32,6 +32,11 @@ torch = [
     "torch>=2.4",
     "safetensors>=0.4",
 ]
+# GFS forecasts (otprof.sources.gfs, gfs_archive): GRIB decoding
+gfs = [
+    "eccodes>=2.41",
+    "eccodeslib>=2.50.0.33",
+]
 # Downloading models from Hugging Face
 hub = [
     "huggingface_hub>=0.20",
@@ -47,7 +52,7 @@ train = [
 [dependency-groups]
 dev = [
     "pytest>=8",
-    "otprof[data,train,hub]",
+    "otprof[data,train,hub,gfs]",
 ]
 
 [build-system]
