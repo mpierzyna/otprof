@@ -1,0 +1,22 @@
+# The production model: SQF-H trained on WRF interpolated to the ERA5 pressure levels, run on ERA5 (later GFS).
+#   uv run python examples/train.py examples/configs/wrf_pl_h.yaml --data-root <domain data dir>
+name: sqfh_wrfpl_wrf
+pipeline: sqf_h               # otprof.models.sqf_h.data: variables, target transforms, scalers, default split
+data:
+  root: data/nl               # domain data dir, layout of examples/new_domain
+  inputs: 4_features_interp/X_wrf_pl.nc
+# features: all of the pipeline's inputs (otprof.features.FEATURES)
+forcings: [z_agl, lz]         # z_agl first: the vertical-gradient loss reads it
+targets: [lcn2, QKE, TSQ, EL_PBL]
+model:
+  arch: sqf_h
+  embed_dim: 48
+  num_blocks: 4
+  num_heads: 2
+  head_dim: 512
+  conv_kernel_size: 3
+  use_conf_head: true
+training:
+  batch_size: 23552           # 23 * 1024
+  max_epochs: 600
+  lr: 1.0e-3

@@ -13,6 +13,9 @@ The chain consists of three lists of steps (`otprof.transforms`), applied in ord
 
 Functions in the config (named selectors, `fe_fns`) are stored by name and resolved through `functions` only when
 used, so a saved pipeline loads without them (e.g. for inference).
+
+`ProfilePipeline` reads the dataset files of a domain (see `examples/new_domain`). What a model makes of them (variables,
+transforms, scalers, default split) is defined with the model, e.g. `otprof.models.sqf_h.data.pipeline`.
 """
 
 from __future__ import annotations
@@ -21,11 +24,14 @@ import abc
 import json
 import logging
 import pathlib
+import warnings
 from typing import Any, Callable, Literal, Self
 
+import numpy as np
 import pydantic
 import xarray as xr
 
+from otprof import schema
 from otprof.transforms import STEPS, InvertibleStep, Step, step_from_dict
 
 logger = logging.getLogger(__name__)
@@ -191,8 +197,12 @@ class BaseDataPipeline(pydantic.BaseModel, abc.ABC):
     def select(self, stage: TStage) -> xr.DataArray:
         """Boolean mask over `sample` for `stage`, from a time selection or a selector function."""
         sel = {"train": self.sel_train, "val": self.sel_val, "test": self.sel_test}[stage]
-        if not isinstance(sel, dict):
-            return self._resolve(sel)(self)
+        if isinstance(sel, dict):
+            return self.select_time(sel)
+        return self._resolve(sel)(self)
+
+    def select_time(self, sel: TimeSel) -> xr.DataArray:
+        """Boolean mask over `sample`: `time` matches every component listed in `sel` (all samples if empty)."""
         t = self.ds_X["time"].dt
         mask = xr.ones_like(self.ds_X["time"], dtype=bool)
         for component, values in sel.items():
@@ -283,6 +293,49 @@ class BaseDataPipeline(pydantic.BaseModel, abc.ABC):
 
         dp = target_cls(**config, functions=functions or {})
         return dp.load_steps(dp_dir, steps=steps or STEPS)
+
+
+def warped_height(z_agl: xr.DataArray) -> xr.DataArray:
+    """lz = log1p(z_agl / LZ_REF) / LZ_NORM (`otprof.schema`), as in `make_inputs`; below ground clipped to 0."""
+    return np.log1p(z_agl.clip(min=0) / schema.LZ_REF) / schema.LZ_NORM
+
+
+class ProfilePipeline(BaseDataPipeline):
+    """Inputs file (time, loc, bottom_top) + WRF targets `y_wrf.nc` of a domain -> samples, invalid profiles dropped.
+
+    `inputs` and `targets` are paths relative to the domain directory `data_root`, in the layout of
+    `examples/new_domain` (`4_features_interp/X_wrf_pl.nc`, `3_features/X_era5_pl.nc`, `3_features/X_wrf_native.nc`,
+    `3_features/y_wrf.nc`); the inputs are `make_inputs` outputs. The targets
+    lose their top level (the inputs lose theirs to the gradients: N-1 input levels from N) and get `lcn2` (log10 Cn2)
+    and the warped height `lz`. Profiles with NaN Cn2 (masked by `otprof.dataset.filter_cn2`) are dropped.
+    """
+
+    data_root: pathlib.Path
+    inputs: str = "4_features_interp/X_wrf_pl.nc"
+    targets: str = "3_features/y_wrf.nc"
+
+    def load_data(self) -> None:
+        ds_X = xr.load_dataset(self.data_root / self.inputs).drop_vars("p_level", errors="ignore")
+        ds_y = xr.load_dataset(self.data_root / self.targets).isel(bottom_top=slice(0, -1))
+        ds_y["lz"] = warped_height(ds_y["z_agl"])
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=RuntimeWarning)  # log10(0) and NaN: dropped below
+            ds_y["lcn2"] = np.log10(ds_y["cn2"])
+
+        # Samples: stacked time and location
+        ds_X = ds_X.stack(sample=("time", "loc")).transpose("sample", ...)
+        ds_y = ds_y.stack(sample=("time", "loc")).transpose("sample", ...)
+
+        # Drop invalid Cn2 profiles
+        invalid = ds_y["cn2"].isnull().any("bottom_top")
+        ds_X, ds_y = ds_X.sel(sample=~invalid), ds_y.sel(sample=~invalid)
+        assert not ds_y["lcn2"].isnull().any() and not np.isinf(ds_y["lcn2"]).any()
+
+        self.ds_X, self.ds_y = ds_X, ds_y
+
+
+# Saved class name -> class, for loading saved pipelines (callers add their own classes)
+PIPELINE_CLASSES: dict[str, type[BaseDataPipeline]] = {"ProfilePipeline": ProfilePipeline}
 
 
 def _fit_steps(steps: list[Step], ds: xr.Dataset) -> None:
