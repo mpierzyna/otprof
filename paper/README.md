@@ -9,7 +9,7 @@ All commands are run from the top folder of the otprof repository. The example f
 ## What you need
 
 - **The datasets** of the two domains, the Netherlands (`nl`) and the Canary Islands (`canaries`), downloaded from
-  Zenodo (`<DOI>`) or built with `examples/new_domain`. Below they are in `data/nl` and `data/canaries`. Each holds
+  Zenodo ([10.5281/zenodo.23733024](https://doi.org/10.5281/zenodo.23733024)) or built with `examples/new_domain`. Below they are in `data/nl` and `data/canaries`. Each holds
   - `4_inputs_interp/wrf_pl.nc`: WRF interpolated to the ERA5 pressure levels (inputs, "WRF-PL"),
   - `3_inputs/era5_pl.nc`: ERA5 at the same points (inputs),
   - `3_targets/y_wrf.nc`: the WRF Cn2 profiles (targets),

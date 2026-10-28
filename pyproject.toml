@@ -1,6 +1,6 @@
 [project]
 name = "otprof"
-version = "0.1.0"
+version = "0.2.0"
 description = "OTProf: high-resolution profiles of optical turbulence (Cn2) from reanalysis and forecasts using deep learning"
 readme = "README.md"
 requires-python = ">=3.12"

@@ -88,6 +88,11 @@ and experiments with `model: {name: my_model, ...}` train, export, load and pred
 (`tests/dummy_model` is a minimal example). A model developed elsewhere becomes part of otprof by moving its
 subpackage to `otprof.models` and adding it to `MODELS` there.
 
+## Citation
+
+The method and its evaluation: [arXiv:2604.09346](https://arxiv.org/abs/2604.09346). The training datasets (nl and
+canaries), the published model and a snapshot of this code: Zenodo [10.5281/zenodo.23733024](https://doi.org/10.5281/zenodo.23733024).
+
 ## License
 
 GPL-3.0, see `COPYING`.
