@@ -72,7 +72,7 @@ def test_standardize_output_feeds_make_inputs():
     assert X.sizes["bottom_top"] == 30
 
 
-def test_chunks_touched(tmp_path):
+def test_get_chunks_touched(tmp_path):
     full = xr.Dataset(
         {"a": (("time", "lat", "lon"), np.zeros((10, 20, 30), "float32"))},
         coords={"time": np.arange(10), "lat": np.arange(20.0), "lon": np.arange(30.0)},
@@ -80,4 +80,4 @@ def test_chunks_touched(tmp_path):
     full.chunk({"time": 4, "lat": 10, "lon": 10}).to_zarr(tmp_path / "s.zarr")
     full = xr.open_zarr(tmp_path / "s.zarr", chunks=None)
     subset = full.sel(time=[0, 5, 9], lat=slice(5, 12), lon=slice(0, 9))  # time chunks 0, 1, 2; lat 0, 1; lon 0
-    assert era5.chunks_touched(subset, full) == {"a": (6, 6 * 4 * 10 * 10 * 4)}
+    assert era5.get_chunks_touched(subset, full) == {"a": (6, 6 * 4 * 10 * 10 * 4)}

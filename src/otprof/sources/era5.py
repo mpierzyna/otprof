@@ -10,6 +10,7 @@ import numpy as np
 import xarray as xr
 
 from otprof import schema
+from otprof.physics.constants import G
 
 # ARCO-ERA5 names → canonical (and short research) names. Fields not listed keep their ARCO name.
 RENAME = {
@@ -37,8 +38,6 @@ RENAME = {
     "latitude": "lat",
     "longitude": "lon",
 }
-
-G = 9.81  # m s-2, as in the training data
 
 ARCO_URL = "gs://gcp-public-data-arco-era5/ar/full_37-1h-0p25deg-chunk-1.zarr-v3"
 
@@ -93,7 +92,7 @@ def fetch(
     full = xr.open_zarr(ARCO_URL, chunks=None, storage_options=dict(token="anon"))
     # ERA5 latitude is stored in descending order
     ds = full.sel(time=times)[variables].sel(longitude=slice(lon_min, lon_max), latitude=slice(lat_max, lat_min))
-    touched = chunks_touched(ds, full)
+    touched = get_chunks_touched(ds, full)
     sizes = {
         "on_disk": ds.nbytes,
         "download": sum(nbytes for _, nbytes in touched.values()),
@@ -102,7 +101,7 @@ def fetch(
     return ds, sizes
 
 
-def chunks_touched(subset: xr.Dataset, full: xr.Dataset) -> dict[str, tuple[int, int]]:
+def get_chunks_touched(subset: xr.Dataset, full: xr.Dataset) -> dict[str, tuple[int, int]]:
     """Per variable of `subset`: number of storage chunks of `full` it touches and their uncompressed size [bytes].
 
     `subset` must be a selection of `full` (e.g. `full.sel(...)`). Reading a subset reads every chunk it touches

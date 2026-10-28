@@ -5,13 +5,13 @@
 
 `train` writes a run directory (`lightning_logs/version_<N>/`): the experiment (`config.yaml`, `data_pipeline/` with
 the fitted scalers as JSON), TensorBoard logs and the 5 best checkpoints by validation loss. The network and its
-Lightning module come from the model's subpackage, looked up by `config.model.arch` in `ARCHITECTURES`.
+Lightning module come from the model's subpackage (`config.model.name`, `otprof.models.get_model`).
 """
 
 from __future__ import annotations
 
 import pathlib
-from typing import Callable, List, Literal
+from typing import List, Literal
 
 import lightning as L
 import numpy as np
@@ -20,11 +20,8 @@ import xarray as xr
 from lightning.pytorch.loggers import TensorBoardLogger
 
 from otprof.experiment import Experiment
-from otprof.models.sqf_h import lit as sqf_h_lit
+from otprof.models import get_model
 from otprof.pipeline import TStage
-
-# Name in an experiment config (`model.arch`) -> function (config, training ProfileDataset) -> Lightning module
-ARCHITECTURES: dict[str, Callable[..., L.LightningModule]] = {"sqf_h": sqf_h_lit.get_lit_model}
 
 
 def _validate_ds(ds: xr.Dataset):
@@ -154,7 +151,7 @@ class ProfileDataset(torch.utils.data.Dataset):
         # Create dataarray and convert to dataset
         da = xr.DataArray(
             y.cpu().numpy(),
-            dims=["sample", "level", "variable"],
+            dims=["sample", "bottom_top", "variable"],
             coords={
                 "variable": self.vars_y,
             },
@@ -210,13 +207,9 @@ def train(
     """Train the experiment's model (set up experiment) and return the run directory
     `<save_dir>/lightning_logs/<version>` (default version: `version_<N>`; set it for parallel runs). `resume_from`:
     checkpoint to continue from. `trainer_kwargs` go to `lightning.Trainer` (e.g. `max_epochs` for a quick test)."""
-    arch = exp.config.model.arch
-    if arch not in ARCHITECTURES:
-        raise ValueError(f"Unknown architecture '{arch}'. Known: {sorted(ARCHITECTURES)}")
-
     # Setup data loaders for training and validation
     data_train = get_torch_dataset(exp, stage="train")
-    model = ARCHITECTURES[arch](exp.config, data_train, compile=compile)
+    model = get_model(exp.config.model.name).get_lit_model(exp.config, data_train, compile=compile)
     loader_train = get_torch_loader(exp, stage="train", data=data_train, num_workers=num_workers)
     loader_val = get_torch_loader(exp, stage="val", num_workers=num_workers)
 

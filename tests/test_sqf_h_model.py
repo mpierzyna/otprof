@@ -37,8 +37,10 @@ def make_input(n_invalid: list[int], n_levels: int = N_LEVELS, seed: int = 1) ->
     return x
 
 
-def lz_query(batch: int, n: int = 99) -> torch.Tensor:
-    return torch.linspace(0.0, 1.0, n).expand(batch, n).contiguous()
+def query_forcings(batch: int, n: int = 99) -> torch.Tensor:
+    """Forcings [z_agl, lz] of `n` query heights, lz evenly in [0, 1] (z_agl unused by the network)."""
+    lz = torch.linspace(0.0, 1.0, n).expand(batch, n)
+    return torch.stack([torch.zeros_like(lz), lz], dim=-1)
 
 
 @pytest.mark.parametrize("train", [False, True])
@@ -52,10 +54,10 @@ def test_mask_invariance(train: bool):
     noise[..., IDX_VALID] = 0  # keep the mask itself
     x_pert[masked] += noise[masked]
 
-    lz_q = lz_query(x.shape[0])
+    frc = query_forcings(x.shape[0])
     with torch.no_grad():
-        y, c = model(x, lz_q)
-        y_p, c_p = model(x_pert, lz_q)
+        y, c = model(x, frc)
+        y_p, c_p = model(x_pert, frc)
     assert torch.equal(y, y_p)
     assert torch.equal(c, c_p)
 
@@ -93,9 +95,9 @@ def test_shift_invariance():
     junk[..., IDX_LZ] = 0.0  # underground copies of the lowest level in the real data
     x_shift = torch.cat([junk, x], dim=1)
 
-    lz_q = lz_query(2)
+    frc = query_forcings(2)
     with torch.no_grad():
-        y, c = model(x, lz_q)
-        y_s, c_s = model(x_shift, lz_q)
+        y, c = model(x, frc)
+        y_s, c_s = model(x_shift, frc)
     torch.testing.assert_close(y, y_s, rtol=1e-5, atol=1e-5)
     torch.testing.assert_close(c, c_s, rtol=1e-5, atol=1e-5)

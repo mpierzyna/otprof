@@ -1,6 +1,5 @@
 # ERA5-PL direct (paper appendix): SQF-H trained directly on ERA5 pressure-level inputs, no decoupling.
 name: sqfh_era5pl_wrf_direct
-pipeline: sqf_h
 data:
   root: data/nl
   inputs: 3_inputs/era5_pl.nc
@@ -9,7 +8,7 @@ targets: [lcn2, QKE, TSQ, EL_PBL]
 scalers_X:
   z_agl: [null, quantile, [0.0, 0.99]]   # as trained: ERA5 heights scaled by quantiles, WRF-PL by min / max
 model:
-  arch: sqf_h
+  name: sqf_h                 # otprof.models.sqf_h: inputs, data processing, network
   embed_dim: 48
   num_blocks: 4
   num_heads: 2

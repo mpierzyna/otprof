@@ -11,10 +11,7 @@ import numpy as np
 import xarray as xr
 
 from otprof.physics import most
-
-K_VON_KARMAN = 0.4
-G = 9.81  # m s-2
-RHO_CP = 1.216e3  # J m-3 K-1, converts a heat flux W m-2 -> K m s-1
+from otprof.physics.constants import G, K_VON_KARMAN, RHO_CP
 
 
 def potential_temperature(tk: xr.DataArray, p: xr.DataArray) -> xr.DataArray:

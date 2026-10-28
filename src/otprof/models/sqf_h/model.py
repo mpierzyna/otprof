@@ -3,29 +3,24 @@
 The backbone is the LEAP Squeezeformer, based on https://www.kaggle.com/code/shlomoron/leap-training-1#Layers by
 shlomoron, converted to PyTorch. `SqueezeformerHModel` adds the underground mask, the interpolation in physical height
 and the query height embedding. Trained with `otprof.models.sqf_h.lit`; saved and loaded without Lightning by
-`save_pretrained` / `from_pretrained` (safetensors + `config.json`) and `from_lightning_checkpoint`.
+`otprof.models.bundle`.
 """
 
 from __future__ import annotations
 
-import json
 import logging
 import math
-import pathlib
 from typing import Tuple
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from otprof import schema
-from otprof.models import check_versions, get_bundle_meta
-from otprof.models.sqf_h.inputs import FEATURES_VERSION
-
 logger = logging.getLogger(__name__)
 
-ARCH = "sqf_h"
-FORMAT_VERSION = 1  # bump on a rename of submodules / parameters, with a key mapping in `from_pretrained`
+# Forcings the network is called with, in this order: the query heights above ground and their warped height (the
+# vertical-gradient loss uses `z_agl`, the network queries at `lz`)
+FORCINGS = ["z_agl", "lz"]
 
 
 class GLU(nn.Module):
@@ -398,7 +393,7 @@ class SqueezeformerHModel(nn.Module):
         n_freq: int = 16,
     ):
         super().__init__()
-        # Architecture hparams as given, written to `config.json` by `save_pretrained`
+        # Architecture hparams as given, saved with the weights (`otprof.models.bundle`)
         self.config = {k: v for k, v in locals().items() if k not in ("self", "__class__")}
         self.idx_valid = idx_valid
         self.idx_lz = idx_lz
@@ -426,11 +421,12 @@ class SqueezeformerHModel(nn.Module):
         else:
             self.conf_head = None
 
-    def forward(self, x: torch.Tensor, lz_q: torch.Tensor) -> torch.Tensor | Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, x: torch.Tensor, frc: torch.Tensor) -> torch.Tensor | Tuple[torch.Tensor, torch.Tensor]:
         """
-        x: (batch, levels_in, features), lz_q: (batch, levels_out) query heights.
+        x: (batch, levels_in, features), frc: (batch, levels_out, FORCINGS) forcings of the query heights.
         Returns predictions (and confidence) of shape (batch, levels_out, output_dim).
         """
+        lz_q = frc[..., FORCINGS.index("lz")]  # query heights
         valid = x[..., self.idx_valid] > 0.5  # (batch, levels_in)
         lz_in = x[..., self.idx_lz]
         m = valid.unsqueeze(-1).to(x.dtype)
@@ -456,65 +452,3 @@ class SqueezeformerHModel(nn.Module):
         else:
             confidence = self.conf_head(x)  # out: (batch, levels_out, output_dim)
             return predictions, confidence
-
-    @classmethod
-    def from_lightning_checkpoint(cls, path: str | pathlib.Path, map_location: str = "cpu") -> SqueezeformerHModel:
-        """The network of a `LitSqueezeFormerH` checkpoint, read from the checkpoint dict (no Lightning needed):
-        architecture hparams from `hyper_parameters` (training ones like `lr` dropped), weights from `state_dict`
-        without the Lit (`model.`) and `torch.compile` (`_orig_mod.`) prefixes."""
-        ckpt = torch.load(path, map_location=map_location, weights_only=False)
-        hparams = {k: v for k, v in ckpt["hyper_parameters"].items() if k in ARCH_HPARAMS}
-        model = cls(**hparams)
-        state_dict = {}
-        for k, v in ckpt["state_dict"].items():
-            if not k.startswith("model."):
-                continue  # not part of the network
-            k = k.removeprefix("model.").removeprefix("_orig_mod.")
-            state_dict[k] = v
-        model.load_state_dict(state_dict)
-        return model
-
-    def save_pretrained(self, out_dir: str | pathlib.Path, **meta) -> None:
-        """`model.safetensors` (weights) and `config.json` (architecture, format and otprof versions, hparams, and
-        `meta`, e.g. the variable order of inputs, forcings and targets)."""
-        from safetensors.torch import save_file  # otprof[torch]
-
-        out_dir = pathlib.Path(out_dir)
-        out_dir.mkdir(parents=True, exist_ok=True)
-        config = {
-            "arch": ARCH,
-            "format_version": FORMAT_VERSION,
-            **get_bundle_meta(FEATURES_VERSION),
-            "hparams": self.config,
-            **meta,
-        }
-        (out_dir / "config.json").write_text(json.dumps(config, indent=2))
-        state_dict = {k: v.contiguous() for k, v in self.state_dict().items()}
-        save_file(state_dict, out_dir / "model.safetensors")
-
-    @classmethod
-    def from_pretrained(cls, model_dir: str | pathlib.Path, map_location: str = "cpu") -> SqueezeformerHModel:
-        """Load a model saved by `save_pretrained`. Raises if the architecture or format differ, or if the MAJOR
-        version of the features or the input schema the model was trained with differs from the installed otprof.
-        The full config is available as `model.bundle_config`."""
-        from safetensors.torch import load_file  # otprof[torch]
-
-        model_dir = pathlib.Path(model_dir)
-        config = json.loads((model_dir / "config.json").read_text())
-        if config.get("arch") != ARCH:
-            raise ValueError(f"{model_dir}: architecture '{config.get('arch')}', expected '{ARCH}'")
-        if config.get("format_version") != FORMAT_VERSION:
-            raise ValueError(f"{model_dir}: format_version {config.get('format_version')}, expected {FORMAT_VERSION}")
-        installed = {"features_version": FEATURES_VERSION, "schema_version": schema.SCHEMA_VERSION}
-        check_versions(config, installed, source=str(model_dir))
-        model = cls(**config["hparams"])
-        model.load_state_dict(load_file(model_dir / "model.safetensors", device=map_location))
-        model.bundle_config = config
-        return model
-
-
-# Constructor arguments of `SqueezeformerHModel`: the architecture hparams kept from a Lightning checkpoint
-ARCH_HPARAMS = [
-    "input_dim", "output_dim", "use_conf_head", "embed_dim", "head_dim", "num_blocks", "num_heads",
-    "conv_kernel_size", "idx_valid", "idx_lz", "n_freq",
-]  # fmt: skip

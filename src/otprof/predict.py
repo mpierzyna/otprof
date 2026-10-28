@@ -25,25 +25,23 @@ import numpy as np
 import torch
 import xarray as xr
 
-from otprof.experiment import PIPELINE_CLASSES, ExperimentConfig
-from otprof.models import check_versions
-from otprof.models.sqf_h.model import SqueezeformerHModel
+from otprof.experiment import ExperimentConfig
+from otprof.models import get_model
+from otprof.models.bundle import check_versions, load_network, load_network_from_checkpoint
 from otprof.physics import ot
 from otprof.pipeline import BaseDataPipeline
 from otprof.transforms import QuantileMapper
 
 logger = logging.getLogger(__name__)
 
-# Architecture name (`config.json` "arch", experiment `model.arch`) -> network class
-MODELS: dict[str, type[torch.nn.Module]] = {"sqf_h": SqueezeformerHModel}
-
 
 @dataclasses.dataclass
 class Predictor:
     """A network with its processing chain and variable order.
 
-    `vars_X`: input variables in tensor order (surface first), `forcings`: `[z_agl, lz]` of the query heights,
-    `targets`: output variables in tensor order, `z_agl_default`: query heights if none are given (mean heights of the
+    `vars_X`: input variables in tensor order (surface first), `forcings`: variables of the query heights the network
+    is called with (made by the pipeline's `make_targets` from `z_agl`, as in training), `targets`: output variables in
+    tensor order, `z_agl_default`: query heights if none are given (mean heights of the
     training targets), `config`: the bundle's `config.json` (versions, hparams).
     """
 
@@ -94,9 +92,9 @@ def load_model(
         path = pathlib.Path(snapshot_download(str(path_or_repo_id), revision=revision))
 
     if (path / "model.safetensors").exists():
-        config = json.loads((path / "config.json").read_text())
-        model = MODELS[config["arch"]].from_pretrained(path, map_location=device)
-        pipeline = BaseDataPipeline.from_disk(path, pipelines=PIPELINE_CLASSES)
+        package = get_model(json.loads((path / "config.json").read_text())["model"])
+        model, config = load_network(path, package, map_location=device)
+        pipeline = BaseDataPipeline.from_disk(path, pipelines=package.PIPELINE_CLASSES)
         z_default = None if config.get("z_agl_default") is None else np.array(config["z_agl_default"])
         return Predictor(
             model=model.to(device).eval(),
@@ -110,9 +108,10 @@ def load_model(
 
     if (path / "config.yaml").exists():
         exp_config = ExperimentConfig.from_yaml(path / "config.yaml")
+        package = get_model(exp_config.model.name)
         ckpt = get_best_ckpt(path) if ckpt is None else pathlib.Path(ckpt)
-        model = MODELS[exp_config.model.arch].from_lightning_checkpoint(ckpt, map_location=device)
-        pipeline = BaseDataPipeline.from_disk(path / "data_pipeline", pipelines=PIPELINE_CLASSES)
+        model = load_network_from_checkpoint(ckpt, package.get_network_class(), map_location=device)
+        pipeline = BaseDataPipeline.from_disk(path / "data_pipeline", pipelines=package.PIPELINE_CLASSES)
         features = pipeline.vars_X if exp_config.features is None else exp_config.features
         return Predictor(
             model=model.to(device).eval(),
@@ -185,11 +184,10 @@ def predict(
         z_q = _stack(z_agl_query, dims).transpose("sample", "bottom_top").values
     _warn_coverage(z_q, predictor.z_agl_default)
 
-    # Forcings of the query heights in model space, as in training (`[z_agl, lz]`; the network queries at `lz`)
+    # Forcings of the query heights in model space, as in training
     ds_q = predictor.pipeline.make_targets(xr.Dataset({"z_agl": (("sample", "bottom_top"), z_q)}))
     ds_q = predictor.pipeline.forward_y(ds_q)
     frc = np.stack([ds_q[v].values for v in predictor.forcings], axis=-1).astype(np.float32)
-    i_lz = predictor.forcings.index("lz")
 
     # Network, in batches
     model = predictor.model.to(device).eval()
@@ -198,7 +196,7 @@ def predict(
         for i in range(0, len(x), batch_size):
             out = model(
                 torch.from_numpy(x[i : i + batch_size]).to(device),
-                torch.from_numpy(frc[i : i + batch_size]).to(device)[:, :, i_lz],
+                torch.from_numpy(frc[i : i + batch_size]).to(device),
             )
             preds.append((out[0] if isinstance(out, tuple) else out).cpu())
     y = torch.cat(preds).numpy()

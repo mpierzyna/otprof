@@ -15,8 +15,8 @@ Functions in the config (named selectors, `fe_fns`) are stored by name and resol
 used, so a saved pipeline loads without them (e.g. for inference).
 
 `ProfilePipeline` reads the dataset files of a domain (see `examples/new_domain`). What a model makes of them (variables,
-transforms, scalers, default split) is defined with the model, e.g. `otprof.models.sqf_h.data.get_pipeline`, which also
-computes the model inputs from the canonical dataset files when they are loaded.
+transforms, scalers, default split) is defined with the model, e.g. `otprof.models.sqf_h.data.get_pipeline`, whose
+pipeline class also computes the model inputs from the canonical dataset files when they are loaded.
 """
 
 from __future__ import annotations
@@ -44,7 +44,7 @@ TimeSel = dict[TimeComponent, list[int]]
 SelFn = Callable[..., xr.DataArray]
 
 # Feature engineering (prototyping): (ds_X, ds_y) -> (new X variables, new y variables). Features that prove useful
-# move into the model's `make_inputs` (or the research inputs), so that inference computes them too.
+# move into the model's `make_inputs`, so that inference computes them too.
 FeFn = Callable[[xr.Dataset, xr.Dataset], tuple[dict[str, xr.DataArray], dict[str, xr.DataArray]]]
 
 
@@ -130,8 +130,9 @@ class BaseDataPipeline(pydantic.BaseModel, abc.ABC):
     def fill_gaps(self) -> None:
         """Implement how missing values are filled. Return gap-filled datasets."""
 
-    def make_features(self) -> None:
-        """Create additional features in ds_X and ds_y using feature engineering functions."""
+    def apply_fe_fns(self) -> None:
+        """Add the variables of the feature engineering functions (`fe_fns`) to ds_X and ds_y, then keep `vars_X` and
+        `vars_y` only."""
 
         def _check_nan(fe_dict: dict[str, xr.DataArray], ds_name: str) -> None:
             for v, da in fe_dict.items():
@@ -153,7 +154,7 @@ class BaseDataPipeline(pydantic.BaseModel, abc.ABC):
             if X_fe_vars:
                 logger.info(f"Adding X features: {X_fe_vars}.")
                 self.ds_X = xr.merge([self.ds_X, xr.Dataset(X_fe)], compat="override")
-                # Rebind (not in-place `+=`) and dedup so make_features stays idempotent and never
+                # Rebind (not in-place `+=`) and dedup so apply_fe_fns stays idempotent and never
                 # mutates an aliased list: `model_copy(update={"vars_X": ...})` stores the passed
                 # object without copying (would corrupt a module-level vars constant), and a loaded
                 # config already lists these features.
@@ -184,10 +185,10 @@ class BaseDataPipeline(pydantic.BaseModel, abc.ABC):
         _fit_steps(self.pre_y, ds_y_train[self.vars_y])
 
     def prepare_data(self) -> Self:
-        """Load the data, fill gaps and make features, without fitting (e.g. to evaluate a trained model)."""
+        """Load the data, fill gaps and apply `fe_fns`, without fitting (e.g. to evaluate a trained model)."""
         self.load_data()
         self.fill_gaps()
-        self.make_features()
+        self.apply_fe_fns()
         return self
 
     def setup(self) -> Self:

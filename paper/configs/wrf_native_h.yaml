@@ -1,14 +1,13 @@
 # Ctl.: SQF-H on native WRF levels (inputs and outputs on the same terrain-following levels, all levels valid).
 # Upper bound of the stepwise decoupling in the paper; not an inference model (needs WRF inputs).
 name: sqfh_wrfnative_wrf
-pipeline: sqf_h
 data:
   root: data/nl
   inputs: 3_inputs/wrf_native.nc
 forcings: [z_agl, lz]
 targets: [lcn2, QKE, TSQ, EL_PBL]
 model:
-  arch: sqf_h
+  name: sqf_h                 # otprof.models.sqf_h: inputs, data processing, network
   embed_dim: 48
   num_blocks: 4
   num_heads: 2

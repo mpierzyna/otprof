@@ -50,8 +50,8 @@ def test_predict_matches_network(run):
 
     loader = get_torch_loader(exp, "test", num_workers=0)  # batches as in training and the research predictions
     with torch.no_grad():
-        y_hat = torch.cat([predictor.model(x, frc[:, :, 1])[0] for x, frc, _ in loader])
-    ref = loader.dataset.unstack_y(y_hat, sample_coord="self").rename(level="bottom_top")
+        y_hat = torch.cat([predictor.model(x, frc)[0] for x, frc, _ in loader])
+    ref = loader.dataset.unstack_y(y_hat, sample_coord="self")
     ref = exp.pipeline.backward_y(ref)
     for v in ["lcn2", "QKE", "TSQ", "EL_PBL"]:
         np.testing.assert_array_equal(pred[v].values, ref[v].values)

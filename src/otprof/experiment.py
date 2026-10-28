@@ -1,13 +1,14 @@
 """Experiments: one YAML file per experiment (`ExperimentConfig`) and the pipeline built from it (`Experiment`).
 
-The config only holds what belongs to the experiment: the pipeline by name (`PIPELINES`: the model's data processing,
-e.g. `otprof.models.sqf_h.data.get_pipeline`), the data (root, inputs file, optionally other selectors than the pipeline's default
-split), which variables the model uses, scaler overrides, model and training settings. Example:
+The config only holds what belongs to the experiment: the model by name and its hyperparameters (`model:`, validated by
+the model's `Config`, see `otprof.models`), the data (root, inputs file, optionally other selectors than the default
+split of the model's pipeline), which variables the model uses, scaler overrides and training settings. The pipeline
+comes from the model (`get_pipeline`: its inputs, transforms, scalers and default split). Example:
 `examples/configs/wrf_pl_h.yaml`.
 
 A run directory holds `config.yaml` (the config as given) and `data_pipeline/` (the resolved pipeline with its fitted
 steps), next to the checkpoints. `Experiment.from_dir` restores both; the pipeline comes from the run, not from the
-factory, so a later change of a factory does not change an old run.
+model's `get_pipeline`, so a later change there does not change an old run.
 """
 
 from __future__ import annotations
@@ -18,18 +19,9 @@ from typing import Callable, Self
 import pydantic
 import xarray as xr
 
-from otprof.models.sqf_h import data as sqf_h_data
-from otprof.pipeline import BaseDataPipeline, ProfilePipeline, TimeSel
+from otprof.models import ModelConfig, get_model
+from otprof.pipeline import BaseDataPipeline, TimeSel
 from otprof.transforms import DatasetScaler, TScalerConfig
-
-# Name in an experiment config -> function (data_root) -> pipeline. Callers add their own (e.g. research).
-PIPELINES: dict[str, Callable[[pathlib.Path], BaseDataPipeline]] = {"sqf_h": sqf_h_data.get_pipeline}
-
-# Saved class name -> class, for loading saved pipelines (callers add their own classes)
-PIPELINE_CLASSES: dict[str, type[BaseDataPipeline]] = {
-    "ProfilePipeline": ProfilePipeline,
-    "SqfhPipeline": sqf_h_data.SqfhPipeline,
-}
 
 
 class _Strict(pydantic.BaseModel):
@@ -47,16 +39,6 @@ class DataConfig(_Strict):
     sel_test: TimeSel | str | None = None
 
 
-class ModelConfig(_Strict):
-    arch: str = "sqf_h"
-    embed_dim: int  # capacity of squeezeformer and attention layers
-    head_dim: int  # dimensionality of the final prediction head
-    num_blocks: int  # depth, i.e. number of squeezeformer blocks
-    num_heads: int  # number of attention heads
-    conv_kernel_size: int  # kernel size of the convolutional layers
-    use_conf_head: bool = True
-
-
 class TrainingConfig(_Strict):
     batch_size: int
     max_epochs: int
@@ -65,7 +47,6 @@ class TrainingConfig(_Strict):
 
 class ExperimentConfig(_Strict):
     name: str
-    pipeline: str = "sqf_h"
     data: DataConfig
     features: list[str] | None = None  # inputs of the model; default: all of the pipeline's vars_X
     forcings: list[str]  # from y, passed to the model (SQF-H: z_agl first, then lz)
@@ -73,8 +54,17 @@ class ExperimentConfig(_Strict):
     # Overrides of single entries of the pipeline's scaler configs, e.g. {z_agl: [null, quantile, [0.0, 0.99]]}
     scalers_X: dict[str, TScalerConfig] = {}
     scalers_y: dict[str, TScalerConfig] = {}
-    model: ModelConfig
+    model: pydantic.SerializeAsAny[ModelConfig]  # the model's own `Config` (subclass), chosen by `name`
     training: TrainingConfig
+
+    @pydantic.field_validator("model", mode="before")
+    @classmethod
+    def _validate_model(cls, v: ModelConfig | dict) -> ModelConfig:
+        if isinstance(v, ModelConfig):
+            return v
+        if not isinstance(v, dict) or "name" not in v:
+            raise ValueError("`model` needs the model `name` (otprof.models.MODELS) and its hyperparameters")
+        return get_model(v["name"]).Config.model_validate(v)
 
     @classmethod
     def from_yaml(cls, path: str | pathlib.Path) -> Self:
@@ -91,16 +81,12 @@ class ExperimentConfig(_Strict):
 def get_pipeline_from_config(
     config: ExperimentConfig,
     data_root: str | pathlib.Path,
-    pipelines: dict[str, Callable] | None = None,
     functions: dict[str, Callable] | None = None,
 ) -> BaseDataPipeline:
-    """The pipeline of `config`: built by the function `config.pipeline` (looked up in `pipelines`, default
-    `PIPELINES`) on `data_root`, with the experiment's inputs file, selectors and scaler overrides. `functions`: named
-    selector functions the selectors refer to. Not set up (no data loaded)."""
-    pipelines = PIPELINES if pipelines is None else pipelines
-    if config.pipeline not in pipelines:
-        raise ValueError(f"Unknown pipeline '{config.pipeline}'. Known: {sorted(pipelines)}")
-    dp = pipelines[config.pipeline](pathlib.Path(data_root))
+    """The pipeline of `config`: built by the model's `get_pipeline` on `data_root`, with the experiment's inputs file,
+    selectors and scaler overrides. `functions`: named selector functions the selectors refer to. Not set up (no data
+    loaded)."""
+    dp = get_model(config.model.name).get_pipeline(pathlib.Path(data_root))
     dp.functions = {**dp.functions, **(functions or {})}
 
     data = config.data
@@ -163,14 +149,13 @@ class Experiment:
         cls,
         config: ExperimentConfig | str | pathlib.Path,
         data_root: str | pathlib.Path | None = None,
-        pipelines: dict[str, Callable] | None = None,
         functions: dict[str, Callable] | None = None,
     ) -> Self:
         """Build the experiment of a config (or a YAML path) on `data_root` (default: `config.data.root`). Not set up."""
         if not isinstance(config, ExperimentConfig):
             config = ExperimentConfig.from_yaml(config)
         data_root = config.data.root if data_root is None else data_root
-        exp = cls(config, get_pipeline_from_config(config, data_root, pipelines=pipelines, functions=functions))
+        exp = cls(config, get_pipeline_from_config(config, data_root, functions=functions))
         if hasattr(exp.pipeline, "inputs"):
             exp.check_files()
         return exp
@@ -192,14 +177,13 @@ class Experiment:
         cls,
         run_dir: str | pathlib.Path,
         data_root: str | pathlib.Path | None = None,
-        pipeline_classes: dict[str, type[BaseDataPipeline]] | None = None,
         functions: dict[str, Callable] | None = None,
     ) -> Self:
         """Restore a run: its config and its saved pipeline with the fitted steps, without data (`setup()` loads it).
         `data_root` replaces the saved one (e.g. another machine or domain)."""
         run_dir = pathlib.Path(run_dir)
         config = ExperimentConfig.from_yaml(run_dir / "config.yaml")
-        pipeline_classes = PIPELINE_CLASSES if pipeline_classes is None else pipeline_classes
+        pipeline_classes = get_model(config.model.name).PIPELINE_CLASSES
         dp = BaseDataPipeline.from_disk(run_dir / "data_pipeline", pipelines=pipeline_classes, functions=functions)
         if data_root is not None:
             dp.data_root = pathlib.Path(data_root)

@@ -6,6 +6,9 @@ import pytest
 import torch
 
 from otprof.experiment import Experiment, ExperimentConfig
+from otprof.models import sqf_h
+from otprof.models.bundle import load_network, load_network_from_checkpoint, save_network
+from otprof.models.sqf_h.inputs import FEATURES_VERSION
 from otprof.models.sqf_h.model import SqueezeformerHModel
 from otprof.training import get_torch_dataset, get_torch_loader, train
 
@@ -65,22 +68,22 @@ def test_train_and_reload(exp, tmp_path):
     assert _eval_loss(lit, loader) < _eval_loss(untrained, loader)
     assert lit.hparams.vars_X == loader.dataset.vars_X
 
-    # ckpt -> network -> save_pretrained -> from_pretrained: same forward output
+    # ckpt -> network -> save_network -> load_network: same forward output
     x, frc, _ = next(iter(loader))
     with torch.no_grad():
-        ref = lit(x, frc[:, :, 1])
-        model = SqueezeformerHModel.from_lightning_checkpoint(ckpt).eval()
-        out = model(x, frc[:, :, 1])
-        model.save_pretrained(tmp_path / "bundle", vars_X=lit.hparams.vars_X)
-        loaded = SqueezeformerHModel.from_pretrained(tmp_path / "bundle").eval()
-        out_loaded = loaded(x, frc[:, :, 1])
+        ref = lit(x, frc)
+        model = load_network_from_checkpoint(ckpt, SqueezeformerHModel).eval()
+        out = model(x, frc)
+        save_network(model, tmp_path / "bundle", "sqf_h", FEATURES_VERSION, vars_X=lit.hparams.vars_X)
+        loaded, config = load_network(tmp_path / "bundle", sqf_h)
+        out_loaded = loaded.eval()(x, frc)
     for a, b, c in zip(ref, out, out_loaded):
         torch.testing.assert_close(a, b, rtol=0, atol=0)
         torch.testing.assert_close(a, c, rtol=0, atol=0)
-    assert loaded.bundle_config["vars_X"] == loader.dataset.vars_X
+    assert config["vars_X"] == loader.dataset.vars_X and config["model"] == "sqf_h"
 
 
-def test_from_lightning_checkpoint_strips_compile_prefix(tmp_path):
+def test_load_network_from_checkpoint_strips_compile_prefix(tmp_path):
     """Checkpoints of compiled models keep the weights under `model._orig_mod.`; training hparams are dropped."""
     hparams = {"input_dim": 5, "output_dim": 2, "use_conf_head": True, "idx_valid": 3, "idx_lz": 4, **TINY}
     model = SqueezeformerHModel(**hparams)
@@ -89,21 +92,21 @@ def test_from_lightning_checkpoint_strips_compile_prefix(tmp_path):
         "state_dict": {f"model._orig_mod.{k}": v for k, v in model.state_dict().items()},
     }
     torch.save(ckpt, tmp_path / "x.ckpt")
-    loaded = SqueezeformerHModel.from_lightning_checkpoint(tmp_path / "x.ckpt")
+    loaded = load_network_from_checkpoint(tmp_path / "x.ckpt", SqueezeformerHModel)
     for k, v in model.state_dict().items():
         torch.testing.assert_close(loaded.state_dict()[k], v, rtol=0, atol=0)
 
 
 @pytest.mark.parametrize("key", ["features_version", "schema_version"])
-def test_from_pretrained_version_check(tmp_path, key):
+def test_load_network_version_check(tmp_path, key):
     hparams = {"input_dim": 5, "output_dim": 2, "use_conf_head": True, "idx_valid": 3, "idx_lz": 4, **TINY}
-    SqueezeformerHModel(**hparams).save_pretrained(tmp_path)
+    save_network(SqueezeformerHModel(**hparams), tmp_path, "sqf_h", FEATURES_VERSION)
     config = json.loads((tmp_path / "config.json").read_text())
     major, minor, patch = config[key].split(".")
     for version, ok in [(f"{major}.{int(minor) + 1}.{patch}", True), (f"{int(major) + 1}.0.0", False)]:
         (tmp_path / "config.json").write_text(json.dumps({**config, key: version}))
         if ok:
-            SqueezeformerHModel.from_pretrained(tmp_path)
+            load_network(tmp_path, sqf_h)
         else:
             with pytest.raises(ValueError, match="different MAJOR"):
-                SqueezeformerHModel.from_pretrained(tmp_path)
+                load_network(tmp_path, sqf_h)

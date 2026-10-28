@@ -1,11 +1,12 @@
 """SQF-H training: the Lightning module around `SqueezeformerHModel` (loss, metrics, optimizer, sample plots).
 
 `get_lit_model(config, data_train)` builds it from an experiment config and the training `ProfileDataset`. Checkpoints
-hold plain hparams only, so `SqueezeformerHModel.from_lightning_checkpoint` reads them without this module.
+hold plain hparams only, so `otprof.models.bundle.load_network_from_checkpoint` reads them without this module.
 """
 
 from __future__ import annotations
 
+import logging
 from typing import Dict, Tuple
 
 import lightning as L
@@ -14,7 +15,9 @@ import torch
 from tensorboardX import SummaryWriter
 
 from otprof.losses import ddz_loss, edist
-from otprof.models.sqf_h.model import SqueezeformerHModel
+from otprof.models.sqf_h.model import FORCINGS, SqueezeformerHModel
+
+logger = logging.getLogger(__name__)
 
 
 def log_sample(tb: SummaryWriter, y_true: torch.Tensor, y_pred: torch.Tensor, epoch: int):
@@ -38,7 +41,7 @@ def log_sample(tb: SummaryWriter, y_true: torch.Tensor, y_pred: torch.Tensor, ep
 
 
 class LitSqueezeFormerH(L.LightningModule):
-    """Height-aware SqueezeFormer (SQF-H). Forcings must be `[z_agl, lz]`: `ddz_loss` uses z_agl,
+    """Height-aware SqueezeFormer (SQF-H). Forcings must be `[z_agl, lz]` (`model.FORCINGS`): `ddz_loss` uses z_agl,
     the model queries at lz. Training predicts a random sorted subset of `n_query_train` output
     levels per batch so the head learns a function of height instead of the level index;
     val/test/predict use all levels.
@@ -81,16 +84,15 @@ class LitSqueezeFormerH(L.LightningModule):
             idx_lz=idx_lz,
         )
         if compile:
-            print("Compiling model...")
+            logger.info("Compiling the network (torch.compile)")
             self.model = torch.compile(self.model)
-            print("Done.")
         self.n_query_train = n_query_train
         self.lr = lr
         self.lr_tmax = lr_tmax
         self.save_hyperparameters()
 
-    def forward(self, x, lz_q):
-        return self.model(x, lz_q)
+    def forward(self, x, frc):
+        return self.model(x, frc)
 
     def _shared_step(self, batch, batch_idx) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
         x, y_frc, y = batch  # y shape: (B, H, C), y_frc: (B, H, [z_agl, lz])
@@ -98,7 +100,7 @@ class LitSqueezeFormerH(L.LightningModule):
             # Random sorted query subset, shared across the batch (static shapes for compile)
             q = torch.randperm(y.shape[1], device=y.device)[: self.n_query_train].sort().values
             y, y_frc = y[:, q], y_frc[:, q]
-        y_hat, y_hat_conf = self(x, y_frc[:, :, 1])
+        y_hat, y_hat_conf = self(x, y_frc)
 
         # RMSE
         sq_err_y = (y_hat - y) ** 2
@@ -133,7 +135,7 @@ class LitSqueezeFormerH(L.LightningModule):
             self.log(f"val_{k}", v, prog_bar=False, sync_dist=True)
         if batch_idx == 0:
             x, y_frc, y = batch
-            y_hat, _ = self(x[:2], y_frc[:2, :, 1])
+            y_hat, _ = self(x[:2], y_frc[:2])
             with torch.no_grad():
                 log_sample(self.logger.experiment, y, y_hat, epoch=self.current_epoch)
         return loss
@@ -147,7 +149,7 @@ class LitSqueezeFormerH(L.LightningModule):
 
     def predict_step(self, batch, batch_idx):
         x, y_frc, _ = batch
-        return self(x, y_frc[:, :, 1])
+        return self(x, y_frc)
 
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(
@@ -162,6 +164,8 @@ class LitSqueezeFormerH(L.LightningModule):
 def get_lit_model(config, data_train, compile: bool = True) -> LitSqueezeFormerH:
     """SQF-H of an experiment config (`otprof.experiment.ExperimentConfig`) for the training `ProfileDataset`
     (input / output sizes; `valid` and `lz` looked up by name, the dataset puts surface variables first)."""
+    if data_train.vars_y_frc != FORCINGS:
+        raise ValueError(f"SQF-H needs the forcings {FORCINGS}, got {data_train.vars_y_frc}")
     m = config.model
     return LitSqueezeFormerH(
         input_dim=data_train.n_vars_X,
@@ -174,6 +178,7 @@ def get_lit_model(config, data_train, compile: bool = True) -> LitSqueezeFormerH
         conv_kernel_size=m.conv_kernel_size,
         idx_valid=data_train.vars_X.index("valid"),
         idx_lz=data_train.vars_X.index("lz"),
+        n_query_train=m.n_query_train,
         lr=config.training.lr,
         lr_tmax=config.training.max_epochs,
         vars_X=data_train.vars_X,

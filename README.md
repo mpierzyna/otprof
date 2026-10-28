@@ -65,11 +65,28 @@ y = predict(predictor, X)                         # lcn2, QKE, TSQ, EL_PBL, r0, 
 | `otprof.sources` | data sources: `era5` (download, `standardize`), `wrf` (WRF Cn2 output, `standardize`) |
 | `otprof.dataset` | building a training dataset: alignment of ERA5 and WRF, targets, Cn2 filter |
 | `otprof.features` | building blocks of model inputs (potential temperature, wind, surface CT2, time features) |
-| `otprof.models` | one subpackage per model; `sqf_h`: its inputs, data processing, network and training module |
+| `otprof.models` | one subpackage per model (`sqf_h`: its inputs, data processing, network and training module); saving and loading networks (`bundle`) |
 | `otprof.pipeline`, `otprof.transforms` | loading the dataset files, train / val / test split, scalers and transforms |
 | `otprof.experiment`, `otprof.training` | experiment configs (YAML) and training |
 | `otprof.predict`, `otprof.export` | prediction with a trained or published model, output quantile mapping, export |
 | `otprof.physics` | atmospheric and optical turbulence physics (r0, scintillation, reference profiles, MOST) |
+
+## Adding a model
+
+A model is a subpackage with a fixed interface (`otprof.models.ModelPackage`): its hyperparameters (`Config`, the
+`model:` block of an experiment config), its inputs computed from the canonical input dataset (`make_inputs`,
+`FEATURES_VERSION`), its data processing (`get_pipeline`), its network (called with the inputs and the forcings of the
+query heights) and its Lightning module. `otprof.models.sqf_h` is the reference. Register it with one line,
+
+```python
+from otprof import models
+
+models.MODELS["my_model"] = "my_package.my_model"
+```
+
+and experiments with `model: {name: my_model, ...}` train, export, load and predict with the same functions as SQF-H
+(`tests/dummy_model` is a minimal example). A model developed elsewhere becomes part of otprof by moving its
+subpackage to `otprof.models` and adding it to `MODELS` there.
 
 ## License
 

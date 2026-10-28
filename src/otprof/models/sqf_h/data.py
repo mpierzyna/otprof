@@ -1,7 +1,7 @@
 """SQF-H data processing: the pipeline on the dataset files, target transforms and scalers, and the default split.
 
-`get_pipeline(data_root)` builds the pipeline on the dataset files of a domain; experiments refer to it by name
-(`pipeline: sqf_h`) and choose the inputs file (WRF-PL for the production model; native WRF or ERA5-PL for the paper's
+`get_pipeline(data_root)` builds the pipeline on the dataset files of a domain for experiments with `model: {name:
+sqf_h}`; they choose the inputs file (WRF-PL for the production model; native WRF or ERA5-PL for the paper's
 comparison models) and, if needed, other selectors. A saved run restores its resolved pipeline, not this function.
 """
 
@@ -54,6 +54,10 @@ class SqfhPipeline(ProfilePipeline):
     def load_data(self) -> None:
         super().load_data()
         assert not self.ds_y["lcn2"].isnull().any() and not np.isinf(self.ds_y["lcn2"]).any()
+
+
+# Saved class name -> class, for loading saved pipelines (`BaseDataPipeline.from_disk`)
+PIPELINE_CLASSES = {"SqfhPipeline": SqfhPipeline}
 
 
 def get_pipeline(data_root: pathlib.Path) -> SqfhPipeline:

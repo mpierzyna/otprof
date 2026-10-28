@@ -1,8 +1,8 @@
 """Export a trained model to a bundle: one directory, safetensors + JSON only (no pickle), loadable with
 `otprof.predict.load_model` and publishable as a Hugging Face model repo.
 
-    config.json         architecture, format and otprof / features / schema versions, hparams, variable order,
-                        default query heights
+    config.json         model name, format and otprof / features / schema versions, hparams, variable order,
+                        default query heights (`otprof.models.bundle`)
     model.safetensors   weights
     pipeline.json       the pipeline config (variables, selectors, class name)
     steps.json          the processing chain: pre_X, pre_y (transforms, fitted scalers), post_y (e.g. fitted oQM)
@@ -16,8 +16,9 @@ import pathlib
 import numpy as np
 
 from otprof.experiment import ExperimentConfig
+from otprof.models import get_model
+from otprof.models.bundle import load_network_from_checkpoint, save_network
 from otprof.pipeline import BaseDataPipeline
-from otprof.predict import MODELS
 
 
 def export_model(
@@ -38,10 +39,14 @@ def export_model(
         raise ValueError("The pipeline's steps are not fitted")
 
     out_dir = pathlib.Path(out_dir)
-    model = MODELS[config.model.arch].from_lightning_checkpoint(ckpt)
+    package = get_model(config.model.name)
+    network = load_network_from_checkpoint(ckpt, package.get_network_class())
     features = pipeline.vars_X if config.features is None else config.features
-    model.save_pretrained(
+    save_network(
+        network,
         out_dir,
+        model=config.model.name,
+        features_version=package.FEATURES_VERSION,
         vars_X=pipeline.get_input_order(features),
         forcings=config.forcings,
         targets=config.targets,

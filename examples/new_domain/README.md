@@ -69,5 +69,5 @@ Features are part of a model, not of the dataset: add it to the model's input fu
 does not hold yet: then add the variable to `otprof.schema` and to every source adapter in `otprof.sources`, and
 rerun steps 3 and 5.
 
-To try a feature without touching otprof, compute it in your own pipeline (`fe_fns`) or input function, as the
-research repository does for its extra inputs.
+To try a feature without touching otprof, compute it with a prototyping function of the pipeline (`fe_fns`), or develop
+a model of your own (see "Adding a model" in the top-level README).
