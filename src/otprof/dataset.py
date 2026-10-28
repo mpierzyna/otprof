@@ -122,7 +122,8 @@ def _nearest(wrf_lat, wrf_lon, lat, lon) -> tuple[np.ndarray, np.ndarray]:
 def wrf_targets(ds_wrf: xr.Dataset) -> xr.Dataset:
     """WRF on its model levels with canonical names, plus height above ground, wind and the astroclimate targets.
 
-    `ds_wrf`: aligned WRF output (native names). Profile targets are `cn2`, `QKE`, `TSQ`, `EL_PBL` on `level`.
+    `ds_wrf`: aligned WRF output (native names). Profile targets are `cn2`, `QKE`, `TSQ`, `EL_PBL` on
+    `bottom_top`.
     """
     ds = wrf.standardize(ds_wrf, grid="model")
     ds["z_agl"] = (ds["z"] - ds["z_sfc_src"]).assign_attrs(long_name="Height above ground", units="m")
@@ -133,8 +134,8 @@ def wrf_targets(ds_wrf: xr.Dataset) -> xr.Dataset:
 
 def astroclim_targets(cn2: xr.DataArray, m: xr.DataArray, z_agl: xr.DataArray, blh: xr.DataArray) -> dict:
     """r0, tau0, th0 and log10 scintillation index (plane wave) per region: surface layer (`sl`, below 0.1 BLH),
-    boundary layer (`bl`), free atmosphere (`fa`) and the full column. Integrals over `level`."""
-    dim = "level"
+    boundary layer (`bl`), free atmosphere (`fa`) and the full column. Integrals over `bottom_top`."""
+    dim = "bottom_top"
     # SL and BL masks are extended one level up so the piecewise integrals add up to the full column
     region_masks = {
         "sl": ot.extend_mask_right(z_agl <= (blh * 0.1), dim=dim),
@@ -172,7 +173,7 @@ def filter_cn2(ds: xr.Dataset, quantile: float = 0.999) -> tuple[xr.Dataset, dic
     lsi2_th = lsi2.quantile(quantile).drop_vars("quantile")
     r0_valid = r0 < r0_th
     lsi2_valid = lsi2 < lsi2_th
-    cn2_valid = ~(cn2 == 0).any("level")
+    cn2_valid = ~(cn2 == 0).any("bottom_top")
 
     ds = ds.copy()
     valid_ac = r0_valid & lsi2_valid

@@ -35,7 +35,7 @@ def make_wrf(n_lev=60, n_time=2, n_loc=3) -> xr.Dataset:
 def test_model_grid_renames_only():
     raw = make_wrf()
     ds = wrf.standardize(raw, grid="model")
-    assert ds.sizes["level"] == raw.sizes["bottom_top"]
+    assert ds.sizes["bottom_top"] == raw.sizes["bottom_top"]
     np.testing.assert_array_equal(ds["p_sfc"], raw["p"].isel(bottom_top=0))
     assert {"u", "v", "blh", "lsm", "tk2", "z_sfc_src", "lat", "lon", "QKE"} <= set(ds.variables)
 
@@ -43,11 +43,12 @@ def test_model_grid_renames_only():
 def test_pressure_grid_interpolation():
     raw = make_wrf()
     ds = wrf.standardize(raw, grid="pressure")
-    assert ds["level"].values.tolist() == list(schema.P_LEVELS_HPA)
+    assert ds["p_level"].values.tolist() == list(schema.P_LEVELS_HPA)
+    assert "bottom_top" not in ds.coords  # positional levels, no leftover interpolation coordinate
     lp = np.log(np.array(schema.P_LEVELS_HPA, dtype=float))
     above = np.array(schema.P_LEVELS_HPA)[None, :] * 100 < raw["p"].isel(bottom_top=0).values[:, :, None].min(0)
     # fields linear in log-pressure are reproduced exactly above the lowest model level
-    u = ds["u"].isel(time=0).transpose("loc", "level").values
+    u = ds["u"].isel(time=0).transpose("loc", "bottom_top").values
     np.testing.assert_allclose(u[above], np.broadcast_to(2 * lp, u.shape)[above], rtol=1e-4)
     # below the lowest model level: nearest level above
     i_first = above[1].argmax()

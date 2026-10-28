@@ -58,26 +58,26 @@ def make_inputs(
       same result for single forecasts).
     """
     schema.validate(ds, grid=grid)
-    ds = ds.drop_vars("level", errors="ignore")  # positional levels; the coordinate is restored at the end
-    full = {"level": slice(0, -1)}
+    ds = ds.drop_vars("p_level", errors="ignore")  # positional levels; the coordinate is restored at the end
+    full = {"bottom_top": slice(0, -1)}
 
     # Profiles
     z_agl = (ds["z"] - ds["z_sfc_src"]).assign_attrs(long_name="Height above ground", units="m")
     th = ds["th"] if "th" in ds else potential_temperature(tk=ds["tk"], p=ds["p"])
 
     # Gradients between consecutive levels, assigned to the lower level
-    dz = ds["z"].diff("level", label="lower")
-    du_dz = ds["u"].diff("level", label="lower") / dz
-    dv_dz = ds["v"].diff("level", label="lower") / dz
+    dz = ds["z"].diff("bottom_top", label="lower")
+    du_dz = ds["u"].diff("bottom_top", label="lower") / dz
+    dv_dz = ds["v"].diff("bottom_top", label="lower") / dz
     S = np.sqrt(du_dz**2 + dv_dz**2).astype(np.float32).assign_attrs(long_name="Wind shear", units="s-1")
-    dth_dz = (th.diff("level", label="lower") / dz).astype(np.float32)
+    dth_dz = (th.diff("bottom_top", label="lower") / dz).astype(np.float32)
     dth_dz = dth_dz.assign_attrs(long_name="Vertical gradient of potential temperature", units="K m-1")
     # Levels repeated by the source (dz = 0, e.g. WRF levels filled below ground) -> gradient of the nearest level
     S, dth_dz = _fill_nearest(S), _fill_nearest(dth_dz)
 
     # Height features
     if grid == "pressure":
-        p_nominal = xr.DataArray(np.array(schema.P_LEVELS_HPA, dtype=float) * 100, dims="level")
+        p_nominal = xr.DataArray(np.array(schema.P_LEVELS_HPA, dtype=float) * 100, dims="bottom_top")
         valid = p_nominal < ds["p_sfc"]  # level above the source's surface
     else:
         valid = xr.ones_like(z_agl, dtype=bool)
@@ -106,7 +106,7 @@ def make_inputs(
     }
     X = xr.Dataset({k: X[k] for k in FEATURES})
     if grid == "pressure":
-        X = X.assign_coords(level=list(schema.P_LEVELS_HPA[:-1]))
+        X = X.assign_coords(p_level=("bottom_top", list(schema.P_LEVELS_HPA[:-1])))
     return X.assign_attrs(
         otprof_features_version=FEATURES_VERSION, otprof_schema_version=schema.SCHEMA_VERSION, otprof_grid=grid
     )
@@ -159,7 +159,7 @@ def time_features(time: xr.DataArray) -> dict[str, xr.DataArray]:
 
 
 def _fill_nearest(da: xr.DataArray) -> xr.DataArray:
-    """Fill NaN along `level` with the value of the nearest non-NaN level (ties: the lower level)."""
+    """Fill NaN along `bottom_top` with the value of the nearest non-NaN level (ties: the lower level)."""
     if not da.isnull().any():
         return da
 
@@ -175,5 +175,7 @@ def _fill_nearest(da: xr.DataArray) -> xr.DataArray:
         src = np.where(use_above, above, below).clip(0, a.shape[-1] - 1)
         return np.take_along_axis(a, src, axis=-1)
 
-    filled = xr.apply_ufunc(_fill, da, input_core_dims=[["level"]], output_core_dims=[["level"]], keep_attrs=True)
+    filled = xr.apply_ufunc(
+        _fill, da, input_core_dims=[["bottom_top"]], output_core_dims=[["bottom_top"]], keep_attrs=True
+    )
     return filled.transpose(*da.dims)

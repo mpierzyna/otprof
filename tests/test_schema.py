@@ -23,11 +23,11 @@ def test_all_problems_listed(canonical):
 
 def test_pressure_grid_levels_checked(canonical):
     with pytest.raises(schema.SchemaError, match="pressure levels"):
-        schema.validate(canonical.isel(level=slice(None, None, -1)))  # top to bottom
+        schema.validate(canonical.isel(bottom_top=slice(None, None, -1)))  # top to bottom
 
 
 def test_model_grid_any_levels(canonical):
-    ds = canonical.isel(level=slice(0, 12)).drop_vars("level")
+    ds = canonical.isel(bottom_top=slice(0, 12)).drop_vars("p_level")
     schema.validate(ds, grid="model")
     with pytest.raises(schema.SchemaError):
         schema.validate(ds, grid="pressure")

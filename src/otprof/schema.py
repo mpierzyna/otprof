@@ -1,9 +1,10 @@
 """Canonical input dataset: what a source adapter (`otprof.sources`) delivers and what `otprof.features.make_inputs`
 relies on.
 
-- Vertical dim `level`, bottom to top. On the pressure grid (all published models) exactly the levels `P_LEVELS_HPA`
-  with the nominal pressure [hPa] as coordinate; on the model grid (native WRF levels) any number of levels.
-- Profile variables have the `level` dim, surface variables do not. All other dims are free: `(time, loc)` for points,
+- Vertical dim `bottom_top`: index 0 is the lowest level, the last the top. On the pressure grid (all published
+  models) exactly the levels `P_LEVELS_HPA`, with the nominal pressure [hPa] as coordinate `p_level`; on the model grid
+  (native WRF levels) any number of levels.
+- Profile variables have the `bottom_top` dim, surface variables do not. All other dims are free: `(time, loc)` for points,
   `(time, lat, lon)` for grids.
 - Variables not listed in `VARIABLES` pass through untouched (e.g. extra ERA5 fields used in research).
 """
@@ -90,15 +91,15 @@ def validate(ds: xr.Dataset, grid: TGrid = "pressure", check_ranges: bool = True
     problems = []
 
     # Vertical grid
-    if "level" not in ds.dims:
-        problems.append("no vertical dim `level`")
+    if "bottom_top" not in ds.dims:
+        problems.append("no vertical dim `bottom_top`")
     elif grid == "pressure":
-        if "level" not in ds.coords or not np.array_equal(ds["level"].values, P_LEVELS_HPA):
-            found = ds["level"].values.tolist() if "level" in ds.coords else "no coordinate"
+        if "p_level" not in ds.coords or not np.array_equal(ds["p_level"].values, P_LEVELS_HPA):
+            found = ds["p_level"].values.tolist() if "p_level" in ds.coords else "no coordinate"
             problems.append(
-                f"`level` must be the pressure levels {list(P_LEVELS_HPA)} hPa (bottom to top), got {found}"
+                f"`p_level` must be the pressure levels {list(P_LEVELS_HPA)} hPa (bottom to top), got {found}"
             )
-    elif ds.sizes["level"] < 2:
+    elif ds.sizes["bottom_top"] < 2:
         problems.append("the model grid needs at least 2 levels")
 
     # Variables
@@ -108,11 +109,11 @@ def validate(ds: xr.Dataset, grid: TGrid = "pressure", check_ranges: bool = True
                 problems.append(f"missing `{name}` ({var.long_name} [{var.units}])")
             continue
         da = ds[name]
-        has_level = "level" in da.dims
+        has_level = "bottom_top" in da.dims
         if var.kind == "profile" and not has_level:
-            problems.append(f"`{name}` is a profile variable but has no `level` dim (dims {da.dims})")
+            problems.append(f"`{name}` is a profile variable but has no `bottom_top` dim (dims {da.dims})")
         if var.kind == "surface" and has_level:
-            problems.append(f"`{name}` is a surface variable but has a `level` dim")
+            problems.append(f"`{name}` is a surface variable but has a `bottom_top` dim")
         if da.attrs.get("units") != var.units:
             problems.append(f"`{name}` must have units `{var.units}`, attrs say `{da.attrs.get('units')}`")
         if check_ranges and da.size:

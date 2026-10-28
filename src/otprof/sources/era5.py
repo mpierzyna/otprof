@@ -136,7 +136,8 @@ def standardize(ds: xr.Dataset) -> xr.Dataset:
     - geopotential → height [m]; the surface geopotential is averaged over the times in `ds` (it is static in ERA5)
     - fluxes: ERA5 is downward positive → upward positive; the latent heat flux is accumulated over 1 h [J m-2] → W m-2
     - sea level pressure Pa → hPa; longitude 0..360 → -180..180
-    - the 31 levels of the pressure grid, bottom to top, with the nominal pressure as `p` [Pa]
+    - the 31 levels of the pressure grid, bottom to top (dim `bottom_top`, nominal pressure as coordinate `p_level`
+      [hPa] and as `p` [Pa])
     """
     ds = ds.rename({k: v for k, v in RENAME.items() if k in ds.variables})
     ds = ds.assign_coords(lon=(((ds["lon"] + 180) % 360) - 180))
@@ -153,6 +154,7 @@ def standardize(ds: xr.Dataset) -> xr.Dataset:
     # Pressure grid: select and order the levels bottom to top; nominal pressure in Pa (int, as in the training data)
     ds = ds.sel(level=list(schema.P_LEVELS_HPA))
     ds["p"] = (ds["level"] * 100).astype(int)
+    ds = ds.rename(level="p_level").swap_dims(p_level="bottom_top")
 
     ds = schema.set_attrs(ds)
     return schema.validate(ds, grid="pressure")

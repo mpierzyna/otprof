@@ -12,11 +12,11 @@ def make_canonical(n_time: int = 3, n_loc: int = 2, seed: int = 0) -> xr.Dataset
     p = np.array(schema.P_LEVELS_HPA, dtype=float) * 100
     z = 7_000.0 * np.log(101_325.0 / p)  # isothermal-ish scale height, increasing with level
     shape = (n_time, len(p), n_loc)
-    dims3, dims2 = ("time", "level", "loc"), ("time", "loc")
+    dims3, dims2 = ("time", "bottom_top", "loc"), ("time", "loc")
     ds = xr.Dataset(
         {
             "z": (dims3, np.broadcast_to(z[None, :, None], shape) + rng.normal(0, 5, shape)),
-            "p": (("level",), (p).astype(int)),
+            "p": (("bottom_top",), (p).astype(int)),
             "u": (dims3, 5 + z[None, :, None] / 1_000 + rng.normal(0, 1, shape)),
             "v": (dims3, rng.normal(0, 3, shape)),
             "tk": (dims3, np.broadcast_to(288 - 0.0065 * np.minimum(z, 11_000)[None, :, None], shape).copy()),
@@ -34,7 +34,7 @@ def make_canonical(n_time: int = 3, n_loc: int = 2, seed: int = 0) -> xr.Dataset
         },
         coords={
             "time": pd.date_range("2017-06-01", periods=n_time, freq="6h"),
-            "level": list(schema.P_LEVELS_HPA),
+            "p_level": ("bottom_top", list(schema.P_LEVELS_HPA)),
             "lat": ("loc", np.linspace(50, 52, n_loc)),
             "lon": ("loc", np.linspace(4, 6, n_loc)),
         },

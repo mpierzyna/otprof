@@ -9,23 +9,23 @@ from otprof.features import FEATURES, FEATURES_VERSION, make_inputs, potential_t
 def test_outputs_and_levels(canonical):
     X = make_inputs(canonical)
     assert list(X.data_vars) == FEATURES
-    assert X["level"].values.tolist() == list(schema.P_LEVELS_HPA[:-1])  # 20 hPa only enters the top gradient
-    assert X.sizes["level"] == 30
-    assert "level" not in X["ust"].dims and "level" in X["S"].dims
+    assert X["p_level"].values.tolist() == list(schema.P_LEVELS_HPA[:-1])  # 20 hPa only enters the top gradient
+    assert X.sizes["bottom_top"] == 30
+    assert "bottom_top" not in X["ust"].dims and "bottom_top" in X["S"].dims
     assert X.attrs["otprof_features_version"] == FEATURES_VERSION
     assert X.attrs["otprof_schema_version"] == schema.SCHEMA_VERSION
 
 
 def test_gradients_to_level_above(canonical):
     ds = canonical.copy()
-    dz = ds["z"].isel(level=slice(1, None)).values - ds["z"].isel(level=slice(0, -1)).values
+    dz = ds["z"].isel(bottom_top=slice(1, None)).values - ds["z"].isel(bottom_top=slice(0, -1)).values
     ds["u"] = (2e-3 * ds["z"]).assign_attrs(units="m s-1")  # constant shear 2e-3 1/s
     ds["v"] = xr.zeros_like(ds["u"])
     X = make_inputs(ds)
     np.testing.assert_allclose(X["S"], 2e-3, rtol=1e-4)
     th = potential_temperature(ds["tk"], ds["p"]).values
     expected = (th[:, 1:] - th[:, :-1]) / dz
-    np.testing.assert_allclose(X["dth_dz"].transpose("time", "level", "loc"), expected, rtol=1e-4)
+    np.testing.assert_allclose(X["dth_dz"].transpose("time", "bottom_top", "loc"), expected, rtol=1e-4)
 
 
 def test_th_from_source_is_kept(canonical):
@@ -33,17 +33,18 @@ def test_th_from_source_is_kept(canonical):
     ds["th"].attrs["units"] = "K"
     X = make_inputs(ds)
     xr.testing.assert_equal(
-        X["th"], (canonical["tk"] + 10).isel(level=slice(0, -1)).drop_vars("level").assign_coords(level=X["level"])
+        X["th"],
+        (canonical["tk"] + 10).isel(bottom_top=slice(0, -1)).drop_vars("p_level").assign_coords(p_level=X["p_level"]),
     )
 
 
 def test_height_features(canonical):
     X = make_inputs(canonical)
     z_agl = canonical["z"] - canonical["z_sfc_src"]
-    np.testing.assert_allclose(X["z_agl"], z_agl.isel(level=slice(0, -1)).transpose(*X["z_agl"].dims))
+    np.testing.assert_allclose(X["z_agl"], z_agl.isel(bottom_top=slice(0, -1)).transpose(*X["z_agl"].dims))
     p_nominal = np.array(schema.P_LEVELS_HPA[:-1]) * 100.0
     expected_valid = p_nominal[None, :, None] < canonical["p_sfc"].values[:, None, :]
-    np.testing.assert_array_equal(X["valid"].transpose("time", "level", "loc"), expected_valid)
+    np.testing.assert_array_equal(X["valid"].transpose("time", "bottom_top", "loc"), expected_valid)
     assert float(X["lz"].min()) >= 0
     np.testing.assert_allclose(X["lp_sfc"], np.log(canonical["p_sfc"]))
     xr.testing.assert_equal(X["z_sfc"].drop_attrs(), canonical["z_sfc_src"].drop_attrs())
@@ -57,9 +58,9 @@ def test_z_sfc_target(canonical):
 
 
 def test_model_grid(canonical):
-    ds = canonical.isel(level=slice(0, 12)).drop_vars("level")
+    ds = canonical.isel(bottom_top=slice(0, 12)).drop_vars("p_level")
     X = make_inputs(ds, grid="model")
-    assert X.sizes["level"] == 11
+    assert X.sizes["bottom_top"] == 11
     assert (X["valid"] == 1).all()
 
 
@@ -69,7 +70,7 @@ def test_repeated_levels_get_nearest_gradient(canonical):
         ds[v][:, 0:2, :] = ds[v][:, 2:3, :].values
     X = make_inputs(ds)
     assert not X["S"].isnull().any() and not X["dth_dz"].isnull().any()
-    np.testing.assert_array_equal(X["S"].isel(level=0), X["S"].isel(level=2))
+    np.testing.assert_array_equal(X["S"].isel(bottom_top=0), X["S"].isel(bottom_top=2))
 
 
 def test_w71_bounds_fixed_vs_percentile(canonical):

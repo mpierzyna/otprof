@@ -52,7 +52,7 @@ def test_steps_2_to_5(example_dir):
     y = xr.open_dataset(root / "3_features" / "y_wrf.nc")
     for X in (X_era5, X_wrf):
         assert list(X.data_vars) == features.FEATURES
-        assert X["level"].values.tolist() == list(schema.P_LEVELS_HPA[:-1])
+        assert X["p_level"].values.tolist() == list(schema.P_LEVELS_HPA[:-1])
     # same samples on both sides
     assert X_era5.sizes["loc"] == X_wrf.sizes["loc"] == y.sizes["loc"] > 0
     np.testing.assert_array_equal(X_era5["time"], y["time"])

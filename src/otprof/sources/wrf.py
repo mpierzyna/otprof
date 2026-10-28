@@ -27,7 +27,6 @@ RENAME = {
     "LH": "lh",
     "XLAT": "lat",
     "XLONG": "lon",
-    "bottom_top": "level",
 }
 
 
@@ -42,7 +41,7 @@ def standardize(ds: xr.Dataset, grid: schema.TGrid = "pressure") -> xr.Dataset:
       Levels below the lowest model level (p > p_sfc) are filled with the nearest level above.
     """
     ds = ds.rename({k: v for k, v in RENAME.items() if k in ds.variables or k in ds.dims})
-    ds["p_sfc"] = ds["p"].isel(level=0)
+    ds["p_sfc"] = ds["p"].isel(bottom_top=0)
 
     if grid == "pressure":
         ds = _to_pressure_levels(ds)
@@ -52,19 +51,20 @@ def standardize(ds: xr.Dataset, grid: schema.TGrid = "pressure") -> xr.Dataset:
 
 def _to_pressure_levels(ds: xr.Dataset) -> xr.Dataset:
     # Interpolation needs increasing log-pressure, i.e. levels from top to bottom
-    ds = ds.isel(level=slice(None, None, -1))
-    p_hPa_target = xr.DataArray(list(schema.P_LEVELS_HPA[::-1]), dims="level")
+    ds = ds.isel(bottom_top=slice(None, None, -1))
+    p_hPa_target = xr.DataArray(list(schema.P_LEVELS_HPA[::-1]), dims="bottom_top")
 
     # Interpolate on log-pressure scale like the ECMWF example
     # https://confluence.ecmwf.int/display/CKB/ERA5%3A+compute+pressure+and+geopotential+on+model+levels%2C+geopotential+height+and+geometric+height#heading-Step2Interpolatevariablesonmodellevelstocustompressurelevels
     p_hPa = ds["p"] / 100.0
-    ds_interp = interp_vert(ds, np.log(p_hPa), np.log(p_hPa_target), "level")
+    ds_interp = interp_vert(ds, np.log(p_hPa), np.log(p_hPa_target), "bottom_top")
+    ds_interp = ds_interp.drop_vars("bottom_top", errors="ignore")  # the log-pressure targets; positional levels
 
     # Levels below the lowest model level are NaN (WRF surface pressure < level pressure) -> nearest level
-    ds_interp = ds_interp.interpolate_na(dim="level", method="nearest", fill_value="extrapolate")
+    ds_interp = ds_interp.interpolate_na(dim="bottom_top", method="nearest", fill_value="extrapolate")
 
     # Add the surface variables back, levels bottom to top with the nominal pressure as coordinate
     v_sfc = [v for v in ds.data_vars if v not in ds_interp.data_vars]
     ds_interp = ds_interp.merge(ds[v_sfc])
-    ds_interp = ds_interp.isel(level=slice(None, None, -1))
-    return ds_interp.assign_coords(level=list(schema.P_LEVELS_HPA))
+    ds_interp = ds_interp.isel(bottom_top=slice(None, None, -1))
+    return ds_interp.assign_coords(p_level=("bottom_top", list(schema.P_LEVELS_HPA)))

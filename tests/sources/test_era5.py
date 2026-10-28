@@ -53,9 +53,9 @@ def make_arco(n_time=2) -> xr.Dataset:
 
 def test_standardize_conventions():
     ds = era5.standardize(make_arco())
-    assert ds["level"].values.tolist() == list(schema.P_LEVELS_HPA)
+    assert ds["p_level"].values.tolist() == list(schema.P_LEVELS_HPA)
     assert ds["p"].values.tolist() == [p * 100 for p in schema.P_LEVELS_HPA]
-    np.testing.assert_allclose(ds["z"].isel(level=0), 7_000.0 * np.log(1013.25 / 1000), rtol=1e-5)
+    np.testing.assert_allclose(ds["z"].isel(bottom_top=0), 7_000.0 * np.log(1013.25 / 1000), rtol=1e-5)
     np.testing.assert_allclose(ds["z_sfc_src"], 100.0, rtol=1e-6)
     assert "time" not in ds["z_sfc_src"].dims
     np.testing.assert_allclose(ds["hfx"], 100.0)
@@ -69,7 +69,7 @@ def test_standardize_output_feeds_make_inputs():
     from otprof.features import make_inputs
 
     X = make_inputs(era5.standardize(make_arco()))
-    assert X.sizes["level"] == 30
+    assert X.sizes["bottom_top"] == 30
 
 
 def test_chunks_touched(tmp_path):
