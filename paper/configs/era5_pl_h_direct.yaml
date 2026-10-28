@@ -3,7 +3,7 @@ name: sqfh_era5pl_wrf_direct
 pipeline: sqf_h
 data:
   root: data/nl
-  inputs: 3_features/X_era5_pl.nc
+  inputs: 3_inputs/era5_pl.nc
 forcings: [z_agl, lz]
 targets: [lcn2, QKE, TSQ, EL_PBL]
 scalers_X:

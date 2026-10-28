@@ -10,10 +10,10 @@ All commands are run from the top folder of the otprof repository. The example f
 
 - **The datasets** of the two domains, the Netherlands (`nl`) and the Canary Islands (`canaries`), downloaded from
   Zenodo (`<DOI>`) or built with `examples/new_domain`. Below they are in `data/nl` and `data/canaries`. Each holds
-  - `4_features_interp/X_wrf_pl.nc`: WRF interpolated to the ERA5 pressure levels (inputs, "WRF-PL"),
-  - `3_features/X_era5_pl.nc`: ERA5 at the same points (inputs),
-  - `3_features/y_wrf.nc`: the WRF Cn2 profiles (targets),
-  - for the control experiment also `3_features/X_wrf_native.nc` (WRF on its own model levels; not built by
+  - `4_inputs_interp/wrf_pl.nc`: WRF interpolated to the ERA5 pressure levels (inputs, "WRF-PL"),
+  - `3_inputs/era5_pl.nc`: ERA5 at the same points (inputs),
+  - `3_targets/y_wrf.nc`: the WRF Cn2 profiles (targets),
+  - for the control experiment also `3_inputs/wrf_native.nc` (WRF on its own model levels; not built by
     `examples/new_domain`).
 - **otprof** with the training extras: `pip install "otprof[data,train]"`.
 
@@ -51,7 +51,7 @@ WRF-PL: the decoupled model with the WRF inputs it was trained on.
 ERA5-PL: the same model, but with ERA5 inputs (`--inputs` replaces the inputs file).
 
     python paper/predict_test.py paper/configs/wrf_pl_h.yaml --model runs/lightning_logs/wrf_pl_h \
-        --data-root data/nl --out preds/nl --basename era5pl --inputs 3_features/X_era5_pl.nc
+        --data-root data/nl --out preds/nl --basename era5pl --inputs 3_inputs/era5_pl.nc
 
 Ctl. and ERA5-PL direct:
 
@@ -71,7 +71,7 @@ The output quantile mapping corrects the distribution of the ERA5-driven Cn2 pre
 the training years, so first predict them with ERA5 inputs (`--sel-test` selects the years to predict):
 
     python paper/predict_test.py paper/configs/wrf_pl_h.yaml --model runs/lightning_logs/wrf_pl_h \
-        --data-root data/nl --out preds/nl --basename era5pl_trainyears --inputs 3_features/X_era5_pl.nc \
+        --data-root data/nl --out preds/nl --basename era5pl_trainyears --inputs 3_inputs/era5_pl.nc \
         --sel-test '{"year": [2019, 2020]}'
 
 Then fit the mapping and apply it to the 2017 ERA5 predictions:
@@ -92,7 +92,7 @@ predicted separately, with WRF and with ERA5 inputs (`--no-oqm`: without any out
         --sel-test '{"month": [1, 4, 7, 10]}' --no-oqm
 
     python paper/predict_test.py paper/configs/wrf_pl_h.yaml --model runs/lightning_logs/wrf_pl_h \
-        --data-root data/canaries --out preds/canaries/A --basename era5pl --inputs 3_features/X_era5_pl.nc \
+        --data-root data/canaries --out preds/canaries/A --basename era5pl --inputs 3_inputs/era5_pl.nc \
         --sel-test '{"month": [1, 4, 7, 10]}' --no-oqm
 
 and the same for group B (`--out preds/canaries/B --sel-test '{"month": [2, 5, 8, 11]}'`) and group C

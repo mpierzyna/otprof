@@ -7,7 +7,6 @@ import pytest
 import torch
 import xarray as xr
 
-from otprof import features
 from otprof.experiment import Experiment, ExperimentConfig
 from otprof.export import export_model
 from otprof.predict import fit_oqm, get_best_ckpt, load_model, predict
@@ -38,7 +37,7 @@ def run(domain, tmp_path):
 
 def test_sort_surface_first_matches_profile_dataset(run):
     exp, _ = run
-    assert features.sort_surface_first(exp.features) == get_torch_dataset(exp, "test").vars_X
+    assert exp.pipeline.get_input_order(exp.features) == get_torch_dataset(exp, "test").vars_X
 
 
 def test_predict_matches_network(run):
@@ -84,8 +83,8 @@ def test_bundle_roundtrip_oqm_and_unstacked_inputs(run, tmp_path):
     assert with_oqm.attrs["otprof_oqm"] == 1 and not np.array_equal(with_oqm["lcn2"], pred["lcn2"])
     np.testing.assert_array_equal(with_oqm["QKE"], pred["QKE"])  # oQM maps lcn2 only
 
-    # Inputs as written by make_inputs (time, loc, bottom_top), default query heights
-    X = xr.load_dataset(exp.pipeline.data_root / exp.pipeline.inputs)
+    # Inputs computed by the model from canonical data (time, loc, bottom_top), default query heights
+    X = loaded.make_inputs(xr.load_dataset(exp.pipeline.data_root / exp.pipeline.inputs))
     out = predict(loaded, X, device="cpu")
     assert out["lcn2"].dims == ("time", "loc", "bottom_top") and out.sizes["bottom_top"] == len(z_default)
     # Samples are independent: one sample alone == in the batch (float tolerance: BLAS differs by batch size)
@@ -94,10 +93,10 @@ def test_bundle_roundtrip_oqm_and_unstacked_inputs(run, tmp_path):
     np.testing.assert_allclose(one["lcn2"], single["lcn2"], rtol=1e-6)
 
     # Constant profiles as on pressure levels (`p` only over bottom_top) are broadcast over the samples
-    X_p1d = X.assign(p=X["p"].isel(time=0, loc=0, drop=True))
+    assert X["p"].dims == ("bottom_top",)
     xr.testing.assert_identical(
-        predict(loaded, X_p1d, oqm=False, device="cpu"),
-        predict(loaded, X.assign(p=X_p1d["p"].broadcast_like(X["p"])), oqm=False, device="cpu"),
+        predict(loaded, X, oqm=False, device="cpu"),
+        predict(loaded, X.assign(p=X["p"].broadcast_like(X["z_agl"])), oqm=False, device="cpu"),
     )
 
     # Query heights not covering the training column

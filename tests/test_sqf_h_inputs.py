@@ -3,7 +3,8 @@ import pytest
 import xarray as xr
 
 from otprof import schema
-from otprof.features import FEATURES, FEATURES_VERSION, make_inputs, potential_temperature
+from otprof.features import potential_temperature
+from otprof.models.sqf_h.inputs import FEATURES, FEATURES_VERSION, INPUTS, make_inputs, make_targets
 
 
 def test_outputs_and_levels(canonical):
@@ -11,17 +12,10 @@ def test_outputs_and_levels(canonical):
     assert list(X.data_vars) == list(FEATURES)
     assert X["p_level"].values.tolist() == list(schema.P_LEVELS_HPA[:-1])  # 20 hPa only enters the top gradient
     assert X.sizes["bottom_top"] == 30
-    for f, kind in FEATURES.items():  # the declared kind matches what make_inputs computes
+    for f, (kind, _) in INPUTS.items():  # the declared kind matches what make_inputs computes
         assert ("bottom_top" in X[f].dims) == (kind == "profile"), f
     assert X.attrs["otprof_features_version"] == FEATURES_VERSION
     assert X.attrs["otprof_schema_version"] == schema.SCHEMA_VERSION
-
-
-def test_model_inputs_are_features():
-    """Models choose their inputs from the features `make_inputs` computes."""
-    from otprof.models.sqf_h.data import INPUTS
-
-    assert set(INPUTS) <= set(FEATURES)
 
 
 def test_gradients_to_level_above(canonical):
@@ -59,17 +53,29 @@ def test_height_features(canonical):
 
 
 def test_z_sfc_target(canonical):
-    target = xr.full_like(canonical["z_sfc_src"], 42.0)
-    X = make_inputs(canonical, z_sfc_target=target)
+    """Training data carry the terrain of the target column; z_agl and valid stay with the source's surface."""
+    target = xr.full_like(canonical["z_sfc_src"], 42.0).assign_attrs(units="m")
+    X = make_inputs(canonical.assign(z_sfc_target=target))
     assert (X["z_sfc"] == 42.0).all()
     np.testing.assert_allclose(X["z_agl"], make_inputs(canonical)["z_agl"])  # z_agl stays with the source surface
 
 
 def test_model_grid(canonical):
+    """Without the pressure level coordinate, the levels are model levels (grid detected)."""
     ds = canonical.isel(bottom_top=slice(0, 12)).drop_vars("p_level")
-    X = make_inputs(ds, grid="model")
-    assert X.sizes["bottom_top"] == 11
+    X = make_inputs(ds)
+    assert X.sizes["bottom_top"] == 11 and X.attrs["otprof_grid"] == "model"
     assert (X["valid"] == 1).all()
+    xr.testing.assert_identical(X, make_inputs(ds, grid="model"))
+
+
+def test_make_targets():
+    """lz of the target heights is the lz of the inputs; lcn2 only if Cn2 is given."""
+    z_agl = xr.DataArray([[0.0, 10.0, 1_000.0]], dims=("sample", "bottom_top"))
+    y = make_targets(xr.Dataset({"z_agl": z_agl, "cn2": 10 ** (-15 + 0 * z_agl)}))
+    np.testing.assert_allclose(y["lz"], np.log1p(z_agl.clip(min=0) / 10.0) / np.log1p(3_000.0))
+    np.testing.assert_allclose(y["lcn2"], -15.0)
+    assert "lcn2" not in make_targets(xr.Dataset({"z_agl": z_agl}))
 
 
 def test_repeated_levels_get_nearest_gradient(canonical):

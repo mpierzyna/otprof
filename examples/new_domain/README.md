@@ -1,15 +1,19 @@
 # Building a training dataset for a new domain
 
-These scripts turn WRF Cn2 simulations of a new domain into a training dataset for SQF-H. Each step is a small script
+These scripts turn WRF Cn2 simulations of a new domain into a training dataset. Each step is a small script
 that calls a few `otprof` functions and writes NetCDF files you can open and check before running the next step. The
 same steps run in the research repository as a DVC pipeline. `dvc.yaml` here does the same if you want caching.
 
 ```
 WRF Cn2 output (otprof-wrf)  ─┐
-                              ├─ 2 align ─┬─ 3 features + targets ─ 4 filter Cn2 ─→ y_wrf.nc       (targets)
-ERA5 (1 download) ────────────┘           ├─────────────────────────────────────→ X_era5_pl.nc   (ERA5 inputs)
-                                          └─ 5 WRF → pressure levels ───────────→ X_wrf_pl.nc    (training inputs)
+                              ├─ 2 align ─┬─ 3 targets + inputs ─ 4 filter Cn2 ─→ y_wrf.nc     (targets)
+ERA5 (1 download) ────────────┘           ├───────────────────────────────────→ era5_pl.nc   (ERA5 inputs)
+                                          └─ 5 WRF → pressure levels ─────────→ wrf_pl.nc    (training inputs)
 ```
+
+The dataset holds the inputs in the canonical form of `otprof.schema` (names, units, levels), not the features of a
+particular model: each model computes its own inputs from them when it loads the data (SQF-H:
+`otprof.models.sqf_h.inputs.make_inputs`), and the same function runs at inference.
 
 ## Setup
 
@@ -30,9 +34,9 @@ pip install "otprof[data]"     # or: uv sync --extra data, in a clone of otprof
 |---|---|---|---|
 | 1 | `step_1_download_era5.py` | `1_raw/era5.nc` | the time steps cover the WRF period |
 | 2 | `step_2_align.py` | `2_aligned/era5.nc`, `2_aligned/wrf.nc` | number of points, distances, common time steps |
-| 3 | `step_3_features_targets.py` | `3_features/y_wrf_all.nc`, `3_features/X_era5_pl.nc` | profiles look plausible |
-| 4 | `step_4_filter_cn2.py` | `3_features/y_wrf.nc` | share of profiles kept |
-| 5 | `step_5_wrf_to_pl.py` | `4_features_interp/X_wrf_pl.nc` | WRF inputs resemble the ERA5 inputs |
+| 3 | `step_3_standardize_era5_wrf.py` | `3_targets/y_wrf_all.nc`, `3_inputs/era5_pl.nc` | profiles look plausible |
+| 4 | `step_4_filter_cn2.py` | `3_targets/y_wrf.nc` | share of profiles kept |
+| 5 | `step_5_wrf_to_pl.py` | `4_inputs_interp/wrf_pl.nc` | WRF profiles resemble the ERA5 profiles |
 
 **1. Download ERA5.** `otprof.dataset.get_wrf_times` reads the time steps of the WRF output and
 `otprof.sources.era5.fetch` opens ERA5 (pressure levels and surface) for these times and the area from the cloud
@@ -44,33 +48,29 @@ point and its WRF column, so only ERA5 points that fall on a WRF cell are kept. 
 Nothing is converted: ERA5 and WRF keep their own names, units and levels, so `2_aligned` is the raw comparison
 dataset. WRF files are read in parallel (`N_WORKERS`); reading is limited by decompression.
 
-**3. Features and targets.**
+**3. Standardize.**
 - `otprof.dataset.make_wrf_targets`: the WRF profiles on the model levels with canonical names (`cn2`, `QKE`, `TSQ`,
   `EL_PBL`, `z_agl`, ...) and the astroclimate parameters r0, tau0, th0 and the scintillation index for the surface
   layer, boundary layer, free atmosphere and full column.
 - `otprof.sources.era5.standardize` converts ERA5 to the canonical inputs (`otprof.schema`: units, sign conventions,
-  31 pressure levels 1000..20 hPa) and `otprof.features.make_inputs` builds the model inputs from them: the 25
-  `otprof.features.FEATURES` on 30 levels (the 20 hPa level only enters the gradients of the top level). The terrain
-  input is WRF's terrain, the true terrain of the column the model predicts.
+  31 pressure levels 1000..20 hPa). The terrain height of the paired WRF column is added as `z_sfc_target`: the true
+  terrain of the column the model predicts (SQF-H uses it as its terrain input).
 
 **4. Filter Cn2.** `otprof.dataset.filter_cn2` masks (sets to NaN) Cn2 profiles that are zero at any level or whose
 r0 or scintillation index lies above the 99.9 % quantile, and masks the astroclimate parameters accordingly. Masked
 profiles are dropped when training.
 
 **5. WRF on pressure levels.** `otprof.sources.wrf.standardize(grid="pressure")` interpolates WRF to the ERA5
-pressure levels and `make_inputs` builds the same inputs as for ERA5. The model is trained on these WRF inputs and
-applied to ERA5: training and inference inputs come from the same function.
+pressure levels, in the same canonical form as the ERA5 inputs. The model is trained on these WRF inputs and applied
+to ERA5: training and inference inputs come from the same function.
 
 ## Adding a feature
 
-1. Compute it in `otprof.features.make_inputs` from the canonical variables (`otprof.schema.VARIABLES`) and register it
-   in `otprof.features.FEATURES` as "profile" or "surface"; if it needs a new variable, add it to the schema and to
-   every source adapter in `otprof.sources`.
-2. Bump the MINOR version in `otprof.features.FEATURES_VERSION` (a new feature leaves the existing ones unchanged, so
-   existing models keep working) and regenerate the golden test data (`tests/data/make_golden.py`).
-3. Rerun steps 3 and 5 and check the new variable in the output files.
-4. Use it in a model: add a row with its scaler to the model's input table (e.g. `otprof.models.sqf_h.data.INPUTS`)
-   and retrain. Models that do not list it are not affected.
+Features are part of a model, not of the dataset: add it to the model's input function (SQF-H:
+`otprof.models.sqf_h.inputs.make_inputs` and its table `INPUTS`, with a scaler), bump the model's `FEATURES_VERSION`
+(MAJOR: the model's inputs change) and retrain. The dataset only needs rebuilding if the feature needs a variable it
+does not hold yet: then add the variable to `otprof.schema` and to every source adapter in `otprof.sources`, and
+rerun steps 3 and 5.
 
-To try a feature without touching otprof, add it in your own step script after `make_inputs`, as the research
-repository does for its extra inputs.
+To try a feature without touching otprof, compute it in your own pipeline (`fe_fns`) or input function, as the
+research repository does for its extra inputs.

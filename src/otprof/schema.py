@@ -1,5 +1,5 @@
-"""Canonical input dataset: what a source adapter (`otprof.sources`) delivers and what `otprof.features.make_inputs`
-relies on.
+"""Canonical input dataset: what a source adapter (`otprof.sources`) delivers, what the dataset files hold and what the
+models compute their inputs from (e.g. `otprof.models.sqf_h.inputs.make_inputs`).
 
 - Vertical dim `bottom_top`: index 0 is the lowest level, the last the top. On the pressure grid (all published
   models) exactly the levels `P_LEVELS_HPA`, with the nominal pressure [hPa] as coordinate `p_level`; on the model grid
@@ -30,12 +30,6 @@ P_LEVELS_HPA = (
     1000, 975, 950, 925, 900, 875, 850, 825, 800, 775, 750, 700, 650, 600, 550, 500,
     450, 400, 350, 300, 250, 225, 200, 175, 150, 125, 100, 70, 50, 30, 20,
 )  # fmt: skip
-
-# Warped height lz = log1p(z_agl / LZ_REF) / LZ_NORM, ~[0, 1] over 0..30 km: the common height coordinate of the
-# model's inputs and outputs. Fixed constants, never fitted (X and y scalers would put the two sides into different
-# spaces).
-LZ_REF = 10.0  # m
-LZ_NORM = float(np.log1p(30_000.0 / LZ_REF))
 
 
 class Var(pydantic.BaseModel):
@@ -71,11 +65,20 @@ VARIABLES: dict[str, Var] = {
     "tk2": Var(long_name="Temperature at 2 m", units="K", kind="surface", range=(170, 350)),
     "slp": Var(long_name="Sea level pressure", units="hPa", kind="surface", range=(850, 1_100)),
     "lsm": Var(long_name="Land-sea mask (land = 1)", units="1", kind="surface", range=(0, 1)),
+    # Training data: the terrain of the column the model predicts (e.g. the WRF column an ERA5 point is paired with)
+    "z_sfc_target": Var(
+        long_name="Terrain height of the target column", units="m", kind="surface", required=False, range=(-500, 9_000)
+    ),
 }
 
 
 class SchemaError(ValueError):
     """The dataset does not follow the canonical input schema. The message lists every problem found."""
+
+
+def get_grid(ds: xr.Dataset) -> TGrid:
+    """The vertical grid of a canonical dataset: "pressure" if it has the pressure level coordinate `p_level`."""
+    return "pressure" if "p_level" in ds.coords else "model"
 
 
 def set_attrs(ds: xr.Dataset) -> xr.Dataset:

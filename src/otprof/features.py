@@ -1,7 +1,6 @@
-"""Model inputs (unscaled X) from the canonical input dataset (`otprof.schema`).
+"""Building blocks for model inputs: physical quantities derived from the canonical input dataset (`otprof.schema`).
 
-The same function builds the training inputs (from WRF or ERA5) and the inputs at inference (ERA5, later GFS).
-Bump `FEATURES_VERSION` (semver, see there) whenever the output changes.
+Each model combines them into its own inputs (e.g. `otprof.models.sqf_h.inputs.make_inputs`).
 """
 
 from __future__ import annotations
@@ -11,116 +10,11 @@ from typing import Literal
 import numpy as np
 import xarray as xr
 
-from otprof import schema
 from otprof.physics import most
-
-# Version of the features (semver). MAJOR: the values of a feature change or a feature is removed, so models trained on
-# the old features need retraining. MINOR: compatible addition (a new feature, new metadata). PATCH: no change to the
-# output (refactoring, docs). A model records the version it was trained with; inputs fit if the MAJOR versions are equal.
-FEATURES_VERSION = "1.0.0"
-
-# The features `make_inputs` computes: name -> "profile" (on the levels, dim `bottom_top`) or "surface" (one value per
-# column, no `bottom_top`: surface fields, time, surface estimates). Each model chooses its inputs from these and scales
-# them (e.g. `otprof.models.sqf_h.data.INPUTS`), so a new feature changes no existing model.
-FEATURES: dict[str, Literal["profile", "surface"]] = {
-    # Profiles
-    "z_agl": "profile", "p": "profile", "u": "profile", "v": "profile", "th": "profile",
-    # Gradients to the level above
-    "S": "profile", "dth_dz": "profile",
-    # Surface
-    "ust": "surface", "hfx": "surface", "lh": "surface", "blh": "surface", "u10": "surface", "v10": "surface",
-    "tk2": "surface", "slp": "surface", "lsm": "surface",
-    # Time
-    "hr_sin": "surface", "hr_cos": "surface", "doy_sin": "surface", "doy_cos": "surface",
-    # Surface CT2 estimate (W71)
-    "lct2_w71f": "surface",
-    # Height
-    "valid": "profile", "lz": "profile", "z_sfc": "surface", "lp_sfc": "surface",
-}  # fmt: skip
-PROFILE_FEATURES = [f for f, kind in FEATURES.items() if kind == "profile"]
-
-
-def sort_surface_first(features: list[str]) -> list[str]:
-    """Order of the variables in the model's input tensor: surface features first, then profiles, each in the
-    given order (as `otprof.training.ProfileDataset` stacks them)."""
-    return [f for f in features if f not in PROFILE_FEATURES] + [f for f in features if f in PROFILE_FEATURES]
-
 
 K_VON_KARMAN = 0.4
 G = 9.81  # m s-2
 RHO_CP = 1.216e3  # J m-3 K-1, converts a heat flux W m-2 -> K m s-1
-
-
-def make_inputs(
-    ds: xr.Dataset,
-    *,
-    grid: schema.TGrid = "pressure",
-    z_sfc_target: xr.DataArray | None = None,
-    w71_L_bounds: Literal["percentile"] | tuple[float, float] = "percentile",
-) -> xr.Dataset:
-    """The features `FEATURES` (unscaled) on the lowest N-1 of the N levels of `ds` (canonical inputs).
-
-    - Gradients (`S`, `dth_dz`) are taken between each level and the level above; the top level of `ds` only enters
-      these gradients (on the pressure grid: 31 levels 1000..20 hPa → 30 levels 1000..30 hPa).
-    - `z_sfc_target`: terrain height of the column to predict (the target), used as the `z_sfc` input. Defaults to
-      the source's own terrain `z_sfc_src`. `z_agl` and `valid` always refer to the source's own surface.
-    - `w71_L_bounds`: clipping of the Obukhov length for the W71 surface CT2. `"percentile"` clips to the 2.5 / 97.5
-      percentiles of the data passed in (as the training data was built), a tuple to fixed bounds (needed to get the
-      same result for single forecasts).
-    """
-    schema.validate(ds, grid=grid)
-    ds = ds.drop_vars("p_level", errors="ignore")  # positional levels; the coordinate is restored at the end
-    full = {"bottom_top": slice(0, -1)}
-
-    # Profiles
-    z_agl = (ds["z"] - ds["z_sfc_src"]).assign_attrs(long_name="Height above ground", units="m")
-    th = ds["th"] if "th" in ds else potential_temperature(tk=ds["tk"], p=ds["p"])
-
-    # Gradients between consecutive levels, assigned to the lower level
-    dz = ds["z"].diff("bottom_top", label="lower")
-    du_dz = ds["u"].diff("bottom_top", label="lower") / dz
-    dv_dz = ds["v"].diff("bottom_top", label="lower") / dz
-    S = np.sqrt(du_dz**2 + dv_dz**2).astype(np.float32).assign_attrs(long_name="Wind shear", units="s-1")
-    dth_dz = (th.diff("bottom_top", label="lower") / dz).astype(np.float32)
-    dth_dz = dth_dz.assign_attrs(long_name="Vertical gradient of potential temperature", units="K m-1")
-    # Levels repeated by the source (dz = 0, e.g. WRF levels filled below ground) -> gradient of the nearest level
-    S, dth_dz = _fill_nearest(S), _fill_nearest(dth_dz)
-
-    # Height features
-    if grid == "pressure":
-        p_nominal = xr.DataArray(np.array(schema.P_LEVELS_HPA, dtype=float) * 100, dims="bottom_top")
-        valid = p_nominal < ds["p_sfc"]  # level above the source's surface
-    else:
-        valid = xr.ones_like(z_agl, dtype=bool)
-    valid = valid.astype(np.float32).assign_attrs(long_name="Level above the surface", units="1")
-    lz = (np.log1p(z_agl.clip(min=0) / schema.LZ_REF) / schema.LZ_NORM).assign_attrs(
-        long_name="Warped height above ground", units="1"
-    )
-    z_sfc = ds["z_sfc_src"] if z_sfc_target is None else z_sfc_target
-    lp_sfc = np.log(ds["p_sfc"]).assign_attrs(long_name="Log surface pressure", units="log(Pa)")
-
-    X = {
-        "z_agl": z_agl.isel(full),
-        "p": ds["p"].isel(full),
-        "u": ds["u"].isel(full),
-        "v": ds["v"].isel(full),
-        "th": th.isel(full),
-        "S": S,
-        "dth_dz": dth_dz,
-        **{v: ds[v] for v in ["ust", "hfx", "lh", "blh", "u10", "v10", "tk2", "slp", "lsm"]},
-        **get_time_features(ds["time"]),
-        "lct2_w71f": np.log10(sfc_ct2_w71(ust=ds["ust"], hfx=ds["hfx"], tk2=ds["tk2"], L_bounds=w71_L_bounds)),
-        "valid": valid.isel(full),
-        "lz": lz.isel(full),
-        "z_sfc": z_sfc.assign_attrs(long_name="Terrain height of the target column", units="m"),
-        "lp_sfc": lp_sfc,
-    }
-    X = xr.Dataset({k: X[k] for k in FEATURES})
-    if grid == "pressure":
-        X = X.assign_coords(p_level=("bottom_top", list(schema.P_LEVELS_HPA[:-1])))
-    return X.assign_attrs(
-        otprof_features_version=FEATURES_VERSION, otprof_schema_version=schema.SCHEMA_VERSION, otprof_grid=grid
-    )
 
 
 def potential_temperature(tk: xr.DataArray, p: xr.DataArray) -> xr.DataArray:
@@ -169,7 +63,7 @@ def get_time_features(time: xr.DataArray) -> dict[str, xr.DataArray]:
     }
 
 
-def _fill_nearest(da: xr.DataArray) -> xr.DataArray:
+def fill_nearest(da: xr.DataArray) -> xr.DataArray:
     """Fill NaN along `bottom_top` with the value of the nearest non-NaN level (ties: the lower level)."""
     if not da.isnull().any():
         return da

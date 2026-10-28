@@ -43,7 +43,7 @@ def test_profile_dataset_order(exp):
     assert data.vars_X == sfc + [f for f in exp.features if f not in sfc]
     assert data.vars_y_frc == ["z_agl", "lz"] and data.vars_y == ["lcn2", "QKE", "TSQ", "EL_PBL"]
     x, frc, y = data[0]
-    assert x.shape == (4, 25) and frc.shape == (4, 2) and y.shape == (4, 4)
+    assert x.shape == (30, 25) and frc.shape == (4, 2) and y.shape == (4, 4)
 
 
 def test_train_and_reload(exp, tmp_path):

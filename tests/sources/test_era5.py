@@ -66,7 +66,7 @@ def test_standardize_conventions():
 
 
 def test_standardize_output_feeds_make_inputs():
-    from otprof.features import make_inputs
+    from otprof.models.sqf_h.inputs import make_inputs
 
     X = make_inputs(era5.standardize(make_arco()))
     assert X.sizes["bottom_top"] == 30

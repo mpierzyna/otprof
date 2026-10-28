@@ -42,7 +42,7 @@ def test_tk_or_th_required(canonical):
 
 
 def test_versions_are_semver():
-    from otprof.features import FEATURES_VERSION
+    from otprof.models.sqf_h.inputs import FEATURES_VERSION
 
     for v in (schema.SCHEMA_VERSION, FEATURES_VERSION):
         assert re.fullmatch(r"\d+\.\d+\.\d+", v), v

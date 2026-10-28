@@ -1,8 +1,9 @@
 """Prediction: a trained model with its processing chain (`Predictor`), loaded from a bundle, the hub or a training run,
-and `predict` on `make_inputs` outputs.
+and `predict` on the model inputs.
 
     predictor = load_model(sqf_h.HF_REPO_ID, revision=sqf_h.HF_REVISION)   # or a bundle / run directory
-    y = predict(predictor, X)                             # X = make_inputs(...) (time, loc, bottom_top)
+    X = predictor.make_inputs(era5.standardize(ds))   # the model's inputs from canonical data (time, loc, bottom_top)
+    y = predict(predictor, X)
 
 The chain is the one of training and evaluation: `pipeline.forward_X` -> network -> `pipeline.backward_y` (inverse
 target scaling and transforms, then the `post_y` steps, e.g. the output quantile mapping, if `oqm`). The pipeline is
@@ -24,11 +25,11 @@ import numpy as np
 import torch
 import xarray as xr
 
-from otprof.features import sort_surface_first
+from otprof.experiment import PIPELINE_CLASSES, ExperimentConfig
 from otprof.models import check_versions
 from otprof.models.sqf_h.model import SqueezeformerHModel
 from otprof.physics import ot
-from otprof.pipeline import PIPELINE_CLASSES, BaseDataPipeline, compute_warped_height
+from otprof.pipeline import BaseDataPipeline
 from otprof.transforms import QuantileMapper
 
 logger = logging.getLogger(__name__)
@@ -53,6 +54,10 @@ class Predictor:
     targets: list[str]
     z_agl_default: np.ndarray | None = None
     config: dict = dataclasses.field(default_factory=dict)
+
+    def make_inputs(self, ds: xr.Dataset) -> xr.Dataset:
+        """The model's inputs (unscaled) from canonical inputs (`otprof.schema`, e.g. `era5.standardize(...)`)."""
+        return self.pipeline.make_inputs(ds)
 
 
 def get_best_ckpt(run_dir: pathlib.Path) -> pathlib.Path:
@@ -104,8 +109,6 @@ def load_model(
         )
 
     if (path / "config.yaml").exists():
-        from otprof.experiment import ExperimentConfig
-
         exp_config = ExperimentConfig.from_yaml(path / "config.yaml")
         ckpt = get_best_ckpt(path) if ckpt is None else pathlib.Path(ckpt)
         model = MODELS[exp_config.model.arch].from_lightning_checkpoint(ckpt, map_location=device)
@@ -114,7 +117,7 @@ def load_model(
         return Predictor(
             model=model.to(device).eval(),
             pipeline=pipeline,
-            vars_X=sort_surface_first(features),
+            vars_X=pipeline.get_input_order(features),
             forcings=exp_config.forcings,
             targets=exp_config.targets,
         )
@@ -183,8 +186,7 @@ def predict(
     _warn_coverage(z_q, predictor.z_agl_default)
 
     # Forcings of the query heights in model space, as in training (`[z_agl, lz]`; the network queries at `lz`)
-    dims_q = ("sample", "bottom_top")
-    ds_q = xr.Dataset({"z_agl": (dims_q, z_q), "lz": (dims_q, compute_warped_height(xr.DataArray(z_q)).values)})
+    ds_q = predictor.pipeline.make_targets(xr.Dataset({"z_agl": (("sample", "bottom_top"), z_q)}))
     ds_q = predictor.pipeline.forward_y(ds_q)
     frc = np.stack([ds_q[v].values for v in predictor.forcings], axis=-1).astype(np.float32)
     i_lz = predictor.forcings.index("lz")

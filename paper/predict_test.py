@@ -5,7 +5,7 @@
 
 The config defines the dataset and the split (the domain's data are loaded, nothing is fitted); the model brings its
 own processing chain (scalers fitted on its training domain, oQM). `--inputs` replaces the inputs file (e.g.
-`3_features/X_era5_pl.nc`: the decoupled WRF-PL model run on ERA5), `--sel-test` the test selection (e.g.
+`3_inputs/era5_pl.nc`: the decoupled WRF-PL model run on ERA5), `--sel-test` the test selection (e.g.
 '{"month": [3, 6, 9, 12]}' for the canaries test months, '{"year": [2019, 2020]}' for the nl training years used to fit
 the oQM). The query heights are the target heights of each sample.
 

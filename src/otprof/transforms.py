@@ -1,4 +1,4 @@
-"""Processing steps between the dataset files (or `make_inputs` at inference) and the model.
+"""Processing steps between the model inputs (from the dataset files or at inference) and the model.
 
 A pipeline (`otprof.pipeline`) holds three ordered lists of steps: `pre_X` (inputs -> model), `pre_y` (targets <->
 model space, inverted for the outputs) and `post_y` (outputs only, e.g. output quantile mapping). Each step works on

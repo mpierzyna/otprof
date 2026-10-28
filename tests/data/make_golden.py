@@ -1,4 +1,4 @@
-"""Regenerate the golden model inputs after a deliberate MAJOR change (bump `otprof.features.FEATURES_VERSION` first):
+"""Regenerate the golden model inputs after a deliberate MAJOR change (bump `otprof.models.sqf_h.inputs.FEATURES_VERSION` first):
 
     uv run python tests/data/make_golden.py
 
@@ -10,7 +10,7 @@ import pathlib
 
 import xarray as xr
 
-from otprof.features import make_inputs
+from otprof.models.sqf_h.inputs import make_inputs
 from otprof.sources import era5
 
 DATA = pathlib.Path(__file__).parent

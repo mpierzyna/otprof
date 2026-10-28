@@ -4,7 +4,7 @@ import pathlib
 
 import xarray as xr
 
-from otprof.features import FEATURES_VERSION, make_inputs
+from otprof.models.sqf_h.inputs import FEATURES_VERSION, make_inputs
 from otprof.sources import era5
 
 DATA = pathlib.Path(__file__).parent / "data"

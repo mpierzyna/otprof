@@ -4,9 +4,10 @@ Three small scripts, run one after the other. Each writes its result to `data/` 
 inspect (e.g. with `xarray` or `ncview`) before running the next one.
 
 ```
-1 download ERA5  →  data/era5.nc   (ERA5 pressure levels and surface fields)
-2 make inputs    →  data/X.nc      (the model inputs)
-3 predict        →  data/y.nc      (Cn2 profiles, r0, scintillation)
+1 download ERA5  →  data/era5.nc      (ERA5 pressure levels and surface fields, as downloaded)
+2 standardize    →  data/era5_pl.nc   (otprof's names, units and levels)
+3 predict        →  data/X.nc         (the model inputs)
+                    data/y.nc         (Cn2 profiles, r0, scintillation)
 ```
 
 ## Setup
@@ -30,7 +31,7 @@ steps) downloads 4.6 GB and keeps less than 1 MB.
 ## Run
 
     python step_1_download_era5.py
-    python step_2_make_inputs.py
+    python step_2_standardize.py
     python step_3_predict.py
 
 ## Output (`data/y.nc`)
@@ -57,8 +58,8 @@ uncorrected profiles.
 
 ## Good to know
 
-- The surface CT2 input (`lct2_w71f`) clips the Obukhov length to the 2.5 / 97.5 percentiles of the data passed to
-  `make_inputs`, as in training. For very few time steps or grid points these percentiles are uncertain; fixed bounds
+- The surface CT2 input (`lct2_w71f`) clips the Obukhov length to the 2.5 / 97.5 percentiles of the data the inputs
+  are computed from, as in training. For very few time steps or grid points these percentiles are uncertain; fixed bounds
   are planned.
 - The terrain height input is ERA5's own orography. The training inputs used the WRF terrain of the target column.
 - The model was trained on the Netherlands. How well it transfers to other regions is discussed in the paper
@@ -69,14 +70,13 @@ uncorrected profiles.
 ```python
 import pandas as pd
 
-from otprof.features import make_inputs
 from otprof.models import sqf_h
 from otprof.predict import load_model, predict
 from otprof.sources import era5
 
 times = pd.date_range("2023-07-01 00:00", "2023-07-01 18:00", freq="6h")
 ds, sizes = era5.fetch(times, lon_min=3, lon_max=7, lat_min=51, lat_max=53)   # lazy; downloads on .load()
-X = make_inputs(era5.standardize(ds.load()))
 predictor = load_model(sqf_h.HF_REPO_ID, revision=sqf_h.HF_REVISION)
+X = predictor.make_inputs(era5.standardize(ds.load()))   # the model computes its own inputs
 y = predict(predictor, X)
 ```

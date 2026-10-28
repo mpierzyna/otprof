@@ -18,7 +18,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from otprof.models import get_bundle_meta, check_versions
+from otprof import schema
+from otprof.models import check_versions, get_bundle_meta
+from otprof.models.sqf_h.inputs import FEATURES_VERSION
 
 logger = logging.getLogger(__name__)
 
@@ -479,7 +481,13 @@ class SqueezeformerHModel(nn.Module):
 
         out_dir = pathlib.Path(out_dir)
         out_dir.mkdir(parents=True, exist_ok=True)
-        config = {"arch": ARCH, "format_version": FORMAT_VERSION, **get_bundle_meta(), "hparams": self.config, **meta}
+        config = {
+            "arch": ARCH,
+            "format_version": FORMAT_VERSION,
+            **get_bundle_meta(FEATURES_VERSION),
+            "hparams": self.config,
+            **meta,
+        }
         (out_dir / "config.json").write_text(json.dumps(config, indent=2))
         state_dict = {k: v.contiguous() for k, v in self.state_dict().items()}
         save_file(state_dict, out_dir / "model.safetensors")
@@ -497,7 +505,8 @@ class SqueezeformerHModel(nn.Module):
             raise ValueError(f"{model_dir}: architecture '{config.get('arch')}', expected '{ARCH}'")
         if config.get("format_version") != FORMAT_VERSION:
             raise ValueError(f"{model_dir}: format_version {config.get('format_version')}, expected {FORMAT_VERSION}")
-        check_versions(config, source=str(model_dir))
+        installed = {"features_version": FEATURES_VERSION, "schema_version": schema.SCHEMA_VERSION}
+        check_versions(config, installed, source=str(model_dir))
         model = cls(**config["hparams"])
         model.load_state_dict(load_file(model_dir / "model.safetensors", device=map_location))
         model.bundle_config = config

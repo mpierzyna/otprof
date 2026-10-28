@@ -24,26 +24,26 @@ stages:
       outs:
         - data/${key}/2_aligned/era5.nc
         - data/${key}/2_aligned/wrf.nc
-  features_targets:
+  standardize_era5_wrf:
     foreach: ${domains}
     do:
-      cmd: python step_3_features_targets.py ${key}
+      cmd: python step_3_standardize_era5_wrf.py ${key}
       deps:
-        - step_3_features_targets.py
+        - step_3_standardize_era5_wrf.py
         - data/${key}/2_aligned/era5.nc
         - data/${key}/2_aligned/wrf.nc
       outs:
-        - data/${key}/3_features/y_wrf_all.nc
-        - data/${key}/3_features/X_era5_pl.nc
+        - data/${key}/3_targets/y_wrf_all.nc
+        - data/${key}/3_inputs/era5_pl.nc
   filter_cn2:
     foreach: ${domains}
     do:
       cmd: python step_4_filter_cn2.py ${key}
       deps:
         - step_4_filter_cn2.py
-        - data/${key}/3_features/y_wrf_all.nc
+        - data/${key}/3_targets/y_wrf_all.nc
       outs:
-        - data/${key}/3_features/y_wrf.nc
+        - data/${key}/3_targets/y_wrf.nc
   wrf_to_pl:
     foreach: ${domains}
     do:
@@ -52,4 +52,4 @@ stages:
         - step_5_wrf_to_pl.py
         - data/${key}/2_aligned/wrf.nc
       outs:
-        - data/${key}/4_features_interp/X_wrf_pl.nc
+        - data/${key}/4_inputs_interp/wrf_pl.nc

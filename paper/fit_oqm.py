@@ -78,7 +78,7 @@ if __name__ == "__main__":
         groups = {name: pathlib.Path(path) for name, path in (g.split("=", 1) for g in args.group)}
         qm_nl = QuantileMapper.from_dict(json.loads(args.nl_oqm.read_text()))
         # WRF land-sea mask per location (ERA5's own mask marks only half of the WRF land points as land)
-        lsm = xr.open_dataset(args.data_root / "4_features_interp" / "X_wrf_pl.nc")["lsm"]
+        lsm = xr.open_dataset(args.data_root / "4_inputs_interp" / "wrf_pl.nc")["lsm"]
         land_locs = lsm["loc"].values[(lsm > 0.5).any("time").values]
 
         for name, d in groups.items():

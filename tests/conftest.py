@@ -5,11 +5,13 @@ import pandas as pd
 import pytest
 import xarray as xr
 
-from otprof import features, schema
+from otprof import schema
 
 
-def make_canonical(n_time: int = 3, n_loc: int = 2, seed: int = 0) -> xr.Dataset:
+def make_canonical(n_time: int = 3, n_loc: int = 2, seed: int = 0, time: pd.DatetimeIndex | None = None) -> xr.Dataset:
     """Small canonical dataset on the pressure grid with plausible, smooth profiles."""
+    time = pd.date_range("2017-06-01", periods=n_time, freq="6h") if time is None else time
+    n_time = len(time)
     rng = np.random.default_rng(seed)
     p = np.array(schema.P_LEVELS_HPA, dtype=float) * 100
     z = 7_000.0 * np.log(101_325.0 / p)  # isothermal-ish scale height, increasing with level
@@ -35,7 +37,7 @@ def make_canonical(n_time: int = 3, n_loc: int = 2, seed: int = 0) -> xr.Dataset
             "lsm": (dims2, np.ones((n_time, n_loc))),
         },
         coords={
-            "time": pd.date_range("2017-06-01", periods=n_time, freq="6h"),
+            "time": time,
             "p_level": ("bottom_top", list(schema.P_LEVELS_HPA)),
             "lat": ("loc", np.linspace(50, 52, n_loc)),
             "lon": ("loc", np.linspace(4, 6, n_loc)),
@@ -51,41 +53,30 @@ def canonical() -> xr.Dataset:
 
 @pytest.fixture
 def domain(tmp_path) -> pathlib.Path:
-    """Synthetic domain (layout of examples/new_domain): X_wrf_pl.nc (all features, 4 levels, random except `valid`
-    and `lz`) and y_wrf.nc (5 levels), 2017-2020, one invalid profile."""
+    """Synthetic domain (layout of examples/new_domain): canonical inputs `4_inputs_interp/wrf_pl.nc` (31 pressure
+    levels) and targets `3_targets/y_wrf.nc` (5 levels), 2017-2020, 3 locations, one invalid profile."""
     rng = np.random.default_rng(0)
     time = pd.date_range("2017-01-01", "2020-12-31", freq="30D")
-    n_t, n_loc, n_x, n_y = len(time), 3, 4, 5
-    coords = {"time": time, "loc": np.arange(n_loc), "lat": ("loc", [50.0, 51, 52]), "lon": ("loc", [4.0, 5, 6])}
-    profile = {"z_agl", "p", "u", "v", "th", "S", "dth_dz", "valid", "lz"}
-    X = xr.Dataset(
-        {
-            f: (("time", "bottom_top", "loc"), rng.normal(size=(n_t, n_x, n_loc)).astype("float32"))
-            if f in profile
-            else (("time", "loc"), rng.normal(size=(n_t, n_loc)).astype("float32"))
-            for f in features.FEATURES
-        },
-        coords=coords,
-    )
-    # Physical mask and height coordinate (SQF-H reads them unscaled): first level underground at the first location
-    X["valid"][:] = 1.0
-    X["valid"][:, 0, 0] = 0.0
-    X["lz"][:] = np.linspace(0.1, 0.9, n_x, dtype="float32")[None, :, None]
+    time = time + pd.to_timedelta(6 * (np.arange(len(time)) % 4), "h")  # all hours of the day
+    n_t, n_loc, n_y = len(time), 3, 5
+    X = make_canonical(n_loc=n_loc, time=time).assign_coords(loc=np.arange(n_loc))
+    X["lsm"][:] = np.array([1.0, 0.0, 1.0])[None, :]  # land, sea, land
     z_agl = np.broadcast_to(np.array([10.0, 50, 200, 1_000, 5_000])[None, :, None], (n_t, n_y, n_loc))
+    dims = ("time", "bottom_top", "loc")
     y = xr.Dataset(
         {
-            "cn2": (("time", "bottom_top", "loc"), 10 ** rng.uniform(-17, -14, (n_t, n_y, n_loc))),
-            "QKE": (("time", "bottom_top", "loc"), rng.uniform(0, 2, (n_t, n_y, n_loc))),
-            "TSQ": (("time", "bottom_top", "loc"), rng.uniform(0, 1, (n_t, n_y, n_loc))),
-            "EL_PBL": (("time", "bottom_top", "loc"), rng.uniform(1, 100, (n_t, n_y, n_loc))),
-            "z_agl": (("time", "bottom_top", "loc"), z_agl.copy()),
-            "z": (("time", "bottom_top", "loc"), z_agl + 20),
+            "cn2": (dims, 10 ** rng.uniform(-17, -14, (n_t, n_y, n_loc))),
+            "QKE": (dims, rng.uniform(0, 2, (n_t, n_y, n_loc))),
+            "TSQ": (dims, rng.uniform(0, 1, (n_t, n_y, n_loc))),
+            "EL_PBL": (dims, rng.uniform(1, 100, (n_t, n_y, n_loc))),
+            "z_agl": (dims, z_agl.copy()),
+            "z": (dims, z_agl + 20),
         },
-        coords=coords,
+        coords={c: X[c] for c in ["time", "loc", "lat", "lon"]},
     )
     y["cn2"][0, 2, 1] = np.nan  # filtered profile
-    (tmp_path / "4_features_interp").mkdir()
-    (tmp_path / "3_features").mkdir()
-    X.to_netcdf(tmp_path / "4_features_interp" / "X_wrf_pl.nc")
-    y.to_netcdf(tmp_path / "3_features" / "y_wrf.nc")
+    (tmp_path / "4_inputs_interp").mkdir()
+    (tmp_path / "3_targets").mkdir()
+    X.to_netcdf(tmp_path / "4_inputs_interp" / "wrf_pl.nc")
+    y.to_netcdf(tmp_path / "3_targets" / "y_wrf.nc")
     return tmp_path

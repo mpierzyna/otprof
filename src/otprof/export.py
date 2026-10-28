@@ -16,7 +16,6 @@ import pathlib
 import numpy as np
 
 from otprof.experiment import ExperimentConfig
-from otprof.features import sort_surface_first
 from otprof.pipeline import BaseDataPipeline
 from otprof.predict import MODELS
 
@@ -32,7 +31,9 @@ def export_model(
     `pipeline`. `z_agl_default`: default query heights [m] of `predict` (e.g. the mean training target heights).
     Pipelines with prototype features (`fe_fns`) are refused: inference has no targets to compute them from."""
     if pipeline.fe_fns:
-        raise ValueError("Pipelines with fe_fns cannot be exported: move the features into make_inputs first")
+        raise ValueError(
+            "Pipelines with fe_fns cannot be exported: move the features into the model's make_inputs first"
+        )
     if not pipeline.is_fitted:
         raise ValueError("The pipeline's steps are not fitted")
 
@@ -41,7 +42,7 @@ def export_model(
     features = pipeline.vars_X if config.features is None else config.features
     model.save_pretrained(
         out_dir,
-        vars_X=sort_surface_first(features),
+        vars_X=pipeline.get_input_order(features),
         forcings=config.forcings,
         targets=config.targets,
         z_agl_default=None if z_agl_default is None else np.asarray(z_agl_default, dtype=float).tolist(),

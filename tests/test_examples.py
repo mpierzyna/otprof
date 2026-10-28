@@ -9,7 +9,8 @@ import pandas as pd
 import pytest
 import xarray as xr
 
-from otprof import features, schema
+from otprof import schema
+from otprof.models.sqf_h import inputs
 
 from .sources.test_era5 import make_arco
 from .test_dataset import write_wrf_files
@@ -42,16 +43,20 @@ def example_dir(tmp_path):
 
 
 def test_steps_2_to_5(example_dir):
-    for step in ["step_2_align.py", "step_3_features_targets.py", "step_4_filter_cn2.py", "step_5_wrf_to_pl.py"]:
+    for step in ["step_2_align.py", "step_3_standardize_era5_wrf.py", "step_4_filter_cn2.py", "step_5_wrf_to_pl.py"]:
         res = subprocess.run([sys.executable, step, "test"], cwd=example_dir, capture_output=True, text=True)
         assert res.returncode == 0, f"{step} failed:\n{res.stdout}\n{res.stderr}"
 
     root = example_dir / "data" / "test"
-    X_era5 = xr.open_dataset(root / "3_features" / "X_era5_pl.nc")
-    X_wrf = xr.open_dataset(root / "4_features_interp" / "X_wrf_pl.nc")
-    y = xr.open_dataset(root / "3_features" / "y_wrf.nc")
-    for X in (X_era5, X_wrf):
-        assert list(X.data_vars) == list(features.FEATURES)
+    era5 = xr.load_dataset(root / "3_inputs" / "era5_pl.nc")
+    wrf = xr.load_dataset(root / "4_inputs_interp" / "wrf_pl.nc")
+    y = xr.open_dataset(root / "3_targets" / "y_wrf.nc")
+    # canonical inputs (ERA5 with the WRF terrain of the target column), from which a model computes its inputs
+    np.testing.assert_array_equal(era5["z_sfc_target"], y["z_sfc_src"])
+    X_era5, X_wrf = inputs.make_inputs(era5), inputs.make_inputs(wrf)
+    for ds, X in [(era5, X_era5), (wrf, X_wrf)]:
+        assert ds["p_level"].values.tolist() == list(schema.P_LEVELS_HPA)
+        assert list(X.data_vars) == inputs.FEATURES
         assert X["p_level"].values.tolist() == list(schema.P_LEVELS_HPA[:-1])
     # same samples on both sides
     assert X_era5.sizes["loc"] == X_wrf.sizes["loc"] == y.sizes["loc"] > 0

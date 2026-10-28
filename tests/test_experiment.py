@@ -4,9 +4,9 @@ import numpy as np
 import pytest
 import xarray as xr
 
-from otprof.models.sqf_h import data as sqf_h_data
+from otprof.models.sqf_h import inputs as sqf_h_inputs
 from otprof.experiment import Experiment, ExperimentConfig, get_pipeline_from_config
-from otprof.pipeline import ProfilePipeline
+from otprof.models.sqf_h.data import SqfhPipeline
 
 REPO = pathlib.Path(__file__).parents[1]
 CONFIGS = sorted([*(REPO / "examples" / "configs").glob("*.yaml"), *(REPO / "paper" / "configs").glob("*.yaml")])
@@ -28,7 +28,7 @@ def test_configs_resolve(path, tmp_path):
     """Every shipped config validates and resolves to a pipeline with its variables (no data needed)."""
     config = ExperimentConfig.from_yaml(path)
     exp = Experiment(config, get_pipeline_from_config(config, tmp_path))
-    assert exp.features == list(sqf_h_data.INPUTS)
+    assert exp.features == sqf_h_inputs.FEATURES
     assert exp.pipeline.inputs == config.data.inputs
 
 
@@ -43,11 +43,11 @@ def test_unknown_keys_and_variables_fail(tmp_path):
 def test_profile_pipeline(domain):
     exp = Experiment.from_config(_config(domain)).setup()
     dp = exp.pipeline
-    assert isinstance(dp, ProfilePipeline)
-    assert dp.ds_X.sizes == {"sample": 49 * 3 - 1, "bottom_top": 4}  # one invalid profile dropped
+    assert isinstance(dp, SqfhPipeline)
+    assert dp.ds_X.sizes == {"sample": 49 * 3 - 1, "bottom_top": 30}  # one invalid profile dropped; 30 input levels
     assert dp.ds_y.sizes["bottom_top"] == 4  # top level dropped
     cn2 = (
-        xr.load_dataset(domain / "3_features" / "y_wrf.nc")["cn2"]
+        xr.load_dataset(domain / "3_targets" / "y_wrf.nc")["cn2"]
         .isel(bottom_top=slice(0, -1))
         .stack(sample=("time", "loc"))
     )
@@ -85,8 +85,10 @@ def test_run_dir_roundtrip(domain, tmp_path):
             xr.testing.assert_identical(a, b)
 
 
-def test_missing_feature_in_file(domain):
-    X = xr.load_dataset(domain / "4_features_interp" / "X_wrf_pl.nc")
-    X.drop_vars("ust").to_netcdf(domain / "3_features" / "X_era5_pl.nc")
+def test_missing_variable_in_file(domain):
+    """An inputs file the model cannot compute its inputs from fails before any data is loaded."""
+    ds = xr.load_dataset(domain / "4_inputs_interp" / "wrf_pl.nc")
+    (domain / "3_inputs").mkdir()
+    ds.drop_vars("ust").to_netcdf(domain / "3_inputs" / "era5_pl.nc")
     with pytest.raises(ValueError, match="ust"):
-        Experiment.from_config(_config(domain, inputs="3_features/X_era5_pl.nc"))
+        Experiment.from_config(_config(domain, inputs="3_inputs/era5_pl.nc"))

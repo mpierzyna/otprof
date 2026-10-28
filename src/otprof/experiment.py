@@ -19,11 +19,17 @@ import pydantic
 import xarray as xr
 
 from otprof.models.sqf_h import data as sqf_h_data
-from otprof.pipeline import PIPELINE_CLASSES, BaseDataPipeline, TimeSel
+from otprof.pipeline import BaseDataPipeline, ProfilePipeline, TimeSel
 from otprof.transforms import DatasetScaler, TScalerConfig
 
 # Name in an experiment config -> function (data_root) -> pipeline. Callers add their own (e.g. research).
 PIPELINES: dict[str, Callable[[pathlib.Path], BaseDataPipeline]] = {"sqf_h": sqf_h_data.get_pipeline}
+
+# Saved class name -> class, for loading saved pipelines (callers add their own classes)
+PIPELINE_CLASSES: dict[str, type[BaseDataPipeline]] = {
+    "ProfilePipeline": ProfilePipeline,
+    "SqfhPipeline": sqf_h_data.SqfhPipeline,
+}
 
 
 class _Strict(pydantic.BaseModel):
@@ -32,8 +38,8 @@ class _Strict(pydantic.BaseModel):
 
 class DataConfig(_Strict):
     root: str  # data directory of the domain (or a name the caller resolves, e.g. a research domain)
-    inputs: str = "4_features_interp/X_wrf_pl.nc"  # relative to root, layout of examples/new_domain
-    targets: str = "3_features/y_wrf.nc"
+    inputs: str = "4_inputs_interp/wrf_pl.nc"  # relative to root, layout of examples/new_domain
+    targets: str = "3_targets/y_wrf.nc"
     # Other selectors than the pipeline's default split: a time selection ({month: [1, 4, 7, 10]}) or the name of a
     # selector function (passed to `Experiment.from_config(functions=...)`)
     sel_train: TimeSel | str | None = None
@@ -139,12 +145,18 @@ class Experiment:
             raise ValueError(f"Experiment '{self.config.name}':\n- " + "\n- ".join(problems))
 
     def check_files(self) -> None:
-        """The pipeline's inputs file holds all features (checked before loading any data)."""
+        """The model inputs can be computed from the pipeline's inputs file (checked on its first sample, before
+        loading any data)."""
         path = pathlib.Path(self.pipeline.data_root) / self.pipeline.inputs
         with xr.open_dataset(path) as ds:
-            missing = [v for v in self.pipeline.vars_X if v not in ds]
+            first = ds.isel({d: slice(0, 1) for d in ds.dims if d != "bottom_top"})
+            try:
+                X = self.pipeline.make_inputs(first.load())
+            except ValueError as e:
+                raise ValueError(f"Experiment '{self.config.name}': {path}: {e}") from None
+        missing = [v for v in self.pipeline.vars_X if v not in X]
         if missing:
-            raise ValueError(f"Experiment '{self.config.name}': {path} lacks the features {missing}")
+            raise ValueError(f"Experiment '{self.config.name}': the inputs from {path} lack {missing}")
 
     @classmethod
     def from_config(

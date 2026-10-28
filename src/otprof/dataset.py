@@ -4,7 +4,8 @@ Steps, as run by `examples/new_domain/` (each writes NetCDF that can be inspecte
 1. `get_wrf_times` → `otprof.sources.era5.fetch`: download ERA5 for the WRF time steps
 2. `align`: pair each ERA5 grid point with the nearest WRF column and keep the common time steps. Pure selection:
    variables, units and levels stay as delivered.
-3. `make_wrf_targets`: WRF Cn2 profiles and astroclimate parameters (targets); `make_inputs` for the inputs
+3. `make_wrf_targets`: WRF Cn2 profiles and astroclimate parameters (targets); the inputs are the canonical ERA5 and
+   WRF data (`otprof.sources`), from which each model computes its own inputs
 4. `filter_cn2`: mask implausible Cn2 profiles and astroclimate values
 """
 

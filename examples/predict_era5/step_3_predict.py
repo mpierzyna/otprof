@@ -1,9 +1,11 @@
-"""Step 3: predict Cn2 profiles from the inputs → `data/y.nc`.
+"""Step 3: predict Cn2 profiles → `data/X.nc` (model inputs) and `data/y.nc` (predictions).
 
-Downloads the published model from Hugging Face on first use (cached afterwards) and predicts at its default heights
-above ground (the 99 WRF levels it was trained on). Output per time and grid point and height (dim bottom_top):
-`lcn2` (log10 Cn2 [m-2/3]), the WRF turbulence quantities `QKE`, `TSQ`, `EL_PBL`, the heights `z_agl` [m], and per
-profile the Fried parameter `r0` [cm] and the log10 scintillation index `lsi2` (1550 nm, plane wave).
+Downloads the published model from Hugging Face on first use (cached afterwards). The model computes its inputs from
+the canonical ERA5 data (gradients, surface CT2 estimate, heights, time features; on the 30 levels 1000 to 30 hPa) and
+predicts at its default heights above ground (the 99 WRF levels it was trained on). Output per time and grid point
+and height (dim bottom_top): `lcn2` (log10 Cn2 [m-2/3]), the WRF turbulence quantities `QKE`, `TSQ`, `EL_PBL`, the
+heights `z_agl` [m], and per profile the Fried parameter `r0` [cm] and the log10 scintillation index `lsi2`
+(1550 nm, plane wave).
 """
 
 import pathlib
@@ -23,8 +25,9 @@ if __name__ == "__main__":
     else:
         predictor = load_model(params["model"])
 
-    X = xr.load_dataset(HERE / "data" / "X.nc")
+    X = predictor.make_inputs(xr.load_dataset(HERE / "data" / "era5_pl.nc"))
+    X.to_netcdf(HERE / "data" / "X.nc")
     y = predict(predictor, X)
     y.to_netcdf(HERE / "data" / "y.nc")
     print(y)
-    print(f"Wrote {HERE / 'data' / 'y.nc'}")
+    print(f"Wrote {HERE / 'data' / 'X.nc'}, {HERE / 'data' / 'y.nc'}")
