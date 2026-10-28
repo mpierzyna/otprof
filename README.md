@@ -16,9 +16,9 @@ cd otprof
 uv sync
 ```
 
-`uv sync` creates `.venv/` with otprof, all its optional parts and the test tools. Everything in `examples/` and
-`paper/` then runs with `uv run`, e.g. `uv run python examples/train.py ...`, and `uv run pytest` runs the tests.
-Training needs a GPU; prediction runs on a CPU too.
+`uv sync` creates `.venv/` with otprof, all its optional parts and the test tools, in the tested versions of
+`uv.lock`. Everything in `examples/` and `paper/` then runs with `uv run`, e.g. `uv run python examples/train.py ...`,
+and `uv run pytest` runs the tests. Training needs a GPU; prediction runs on a CPU too.
 
 To use otprof in your own uv project instead, add it with the optional parts you need:
 
