@@ -412,12 +412,9 @@ class QuantileMapper:
                     out[:, lvl] = self._transfer(vals[:, lvl], self.q_mod_fit_[var][:, lvl], self.q_obs_[var][:, lvl])
                 X_out[var] = (da.dims, out.astype(vals.dtype, copy=False))
             else:
-                original_shape = X_model[var].shape
-                flat_values = X_model[var].values.flatten()
-
-                X_out[var].values = self._transfer(flat_values, self.q_mod_fit_[var], self.q_obs_[var]).reshape(
-                    original_shape
-                )
+                vals = X_model[var].values
+                out = self._transfer(vals.flatten(), self.q_mod_fit_[var], self.q_obs_[var]).reshape(vals.shape)
+                X_out[var].values = out.astype(vals.dtype, copy=False)  # keep the dtype, as per level
 
         return X_out
 

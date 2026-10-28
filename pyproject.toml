@@ -26,6 +26,10 @@ torch = [
     "torch>=2.4",
     "safetensors>=0.4",
 ]
+# Downloading models from Hugging Face
+hub = [
+    "huggingface_hub>=0.20",
+]
 # Training: Lightning loop, TensorBoard logging with sample plots
 train = [
     "otprof[torch]",
@@ -37,7 +41,7 @@ train = [
 [dependency-groups]
 dev = [
     "pytest>=8",
-    "otprof[data,train]",
+    "otprof[data,train,hub]",
 ]
 
 [build-system]

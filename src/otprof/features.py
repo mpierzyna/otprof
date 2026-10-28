@@ -14,26 +14,37 @@ import xarray as xr
 from otprof import schema
 from otprof.physics import most
 
-# Version of the model inputs (semver). MAJOR: `FEATURES` or the values of any feature change, so models trained on the
-# old inputs need retraining. MINOR: compatible addition (e.g. new metadata). PATCH: no change to the output
-# (refactoring, docs). A model records the version it was trained with; inputs fit if the MAJOR versions are equal.
+# Version of the features (semver). MAJOR: the values of a feature change or a feature is removed, so models trained on
+# the old features need retraining. MINOR: compatible addition (a new feature, new metadata). PATCH: no change to the
+# output (refactoring, docs). A model records the version it was trained with; inputs fit if the MAJOR versions are equal.
 FEATURES_VERSION = "1.0.0"
 
-# All inputs of SQF-H, in model order
-FEATURES = [
+# The features `make_inputs` computes: name -> "profile" (on the levels, dim `bottom_top`) or "surface" (one value per
+# column, no `bottom_top`: surface fields, time, surface estimates). Each model chooses its inputs from these and scales
+# them (e.g. `otprof.models.sqf_h.data.INPUTS`), so a new feature changes no existing model.
+FEATURES: dict[str, Literal["profile", "surface"]] = {
     # Profiles
-    "z_agl", "p", "u", "v", "th",
+    "z_agl": "profile", "p": "profile", "u": "profile", "v": "profile", "th": "profile",
     # Gradients to the level above
-    "S", "dth_dz",
+    "S": "profile", "dth_dz": "profile",
     # Surface
-    "ust", "hfx", "lh", "blh", "u10", "v10", "tk2", "slp", "lsm",
+    "ust": "surface", "hfx": "surface", "lh": "surface", "blh": "surface", "u10": "surface", "v10": "surface",
+    "tk2": "surface", "slp": "surface", "lsm": "surface",
     # Time
-    "hr_sin", "hr_cos", "doy_sin", "doy_cos",
+    "hr_sin": "surface", "hr_cos": "surface", "doy_sin": "surface", "doy_cos": "surface",
     # Surface CT2 estimate (W71)
-    "lct2_w71f",
+    "lct2_w71f": "surface",
     # Height
-    "valid", "lz", "z_sfc", "lp_sfc",
-]  # fmt: skip
+    "valid": "profile", "lz": "profile", "z_sfc": "surface", "lp_sfc": "surface",
+}  # fmt: skip
+PROFILE_FEATURES = [f for f, kind in FEATURES.items() if kind == "profile"]
+
+
+def sort_surface_first(features: list[str]) -> list[str]:
+    """Order of the variables in the model's input tensor: surface features first, then profiles, each in the
+    given order (as `otprof.training.ProfileDataset` stacks them)."""
+    return [f for f in features if f not in PROFILE_FEATURES] + [f for f in features if f in PROFILE_FEATURES]
+
 
 K_VON_KARMAN = 0.4
 G = 9.81  # m s-2
@@ -47,7 +58,7 @@ def make_inputs(
     z_sfc_target: xr.DataArray | None = None,
     w71_L_bounds: Literal["percentile"] | tuple[float, float] = "percentile",
 ) -> xr.Dataset:
-    """Unscaled model inputs `FEATURES` on the lowest N-1 of the N levels of `ds` (canonical inputs).
+    """The features `FEATURES` (unscaled) on the lowest N-1 of the N levels of `ds` (canonical inputs).
 
     - Gradients (`S`, `dth_dz`) are taken between each level and the level above; the top level of `ds` only enters
       these gradients (on the pressure grid: 31 levels 1000..20 hPa → 30 levels 1000..30 hPa).

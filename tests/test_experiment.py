@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 import xarray as xr
 
-from otprof import features
+from otprof.models.sqf_h import data as sqf_h_data
 from otprof.experiment import Experiment, ExperimentConfig, get_pipeline_from_config
 from otprof.pipeline import ProfilePipeline
 
@@ -28,7 +28,7 @@ def test_configs_resolve(path, tmp_path):
     """Every shipped config validates and resolves to a pipeline with its variables (no data needed)."""
     config = ExperimentConfig.from_yaml(path)
     exp = Experiment(config, get_pipeline_from_config(config, tmp_path))
-    assert exp.features == list(features.FEATURES)
+    assert exp.features == list(sqf_h_data.INPUTS)
     assert exp.pipeline.inputs == config.data.inputs
 
 

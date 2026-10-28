@@ -183,12 +183,17 @@ class BaseDataPipeline(pydantic.BaseModel, abc.ABC):
         _fit_steps(self.pre_X, ds_X_train[self.vars_X])
         _fit_steps(self.pre_y, ds_y_train[self.vars_y])
 
-    def setup(self) -> Self:
-        """Run all setup steps"""
-        logger.info(f"This is {self.__class__.__name__}. Starting setup.")
+    def prepare_data(self) -> Self:
+        """Load the data, fill gaps and make features, without fitting (e.g. to evaluate a trained model)."""
         self.load_data()
         self.fill_gaps()
         self.make_features()
+        return self
+
+    def setup(self) -> Self:
+        """Run all setup steps: `prepare_data`, then fit the steps (skipped if already fitted)."""
+        logger.info(f"This is {self.__class__.__name__}. Starting setup.")
+        self.prepare_data()
         self.fit()
         logger.info("Data pipeline setup complete.")
 

@@ -22,16 +22,18 @@ def get_bundle_meta() -> dict[str, str]:
     }
 
 
-def check_versions(config: dict, source: str = "model") -> None:
-    """Raise if the MAJOR of `features_version` / `schema_version` in `config` differs from the installed otprof:
-    `make_inputs` would no longer compute the inputs the model was trained on. MINOR / PATCH differences pass."""
-    installed = {"features_version": features.FEATURES_VERSION, "schema_version": schema.SCHEMA_VERSION}
-    for key, current in installed.items():
+def check_versions(config: dict, current: dict | None = None, source: str = "model") -> None:
+    """Raise if the MAJOR of `features_version` / `schema_version` in `config` (a saved model) differs from `current`
+    (default: the installed otprof; e.g. the versions of an inputs dataset): the inputs would no longer be computed as
+    in training. MINOR / PATCH differences pass."""
+    if current is None:
+        current = {"features_version": features.FEATURES_VERSION, "schema_version": schema.SCHEMA_VERSION}
+    for key, now in current.items():
         saved = config.get(key)
         if saved is None:
             raise ValueError(f"{source}: no {key} recorded")
-        if saved.split(".")[0] != current.split(".")[0]:
+        if saved.split(".")[0] != now.split(".")[0]:
             raise ValueError(
-                f"{source}: trained with {key} {saved}, installed otprof has {current} (different MAJOR: the inputs "
-                f"are no longer computed as in training). Use an otprof version with {key} {saved.split('.')[0]}.x"
+                f"{source}: trained with {key} {saved}, but the inputs have {now} (different MAJOR: they are no longer "
+                f"computed as in training). Use an otprof version with {key} {saved.split('.')[0]}.x"
             )

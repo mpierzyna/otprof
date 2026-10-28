@@ -8,12 +8,20 @@ from otprof.features import FEATURES, FEATURES_VERSION, make_inputs, potential_t
 
 def test_outputs_and_levels(canonical):
     X = make_inputs(canonical)
-    assert list(X.data_vars) == FEATURES
+    assert list(X.data_vars) == list(FEATURES)
     assert X["p_level"].values.tolist() == list(schema.P_LEVELS_HPA[:-1])  # 20 hPa only enters the top gradient
     assert X.sizes["bottom_top"] == 30
-    assert "bottom_top" not in X["ust"].dims and "bottom_top" in X["S"].dims
+    for f, kind in FEATURES.items():  # the declared kind matches what make_inputs computes
+        assert ("bottom_top" in X[f].dims) == (kind == "profile"), f
     assert X.attrs["otprof_features_version"] == FEATURES_VERSION
     assert X.attrs["otprof_schema_version"] == schema.SCHEMA_VERSION
+
+
+def test_model_inputs_are_features():
+    """Models choose their inputs from the features `make_inputs` computes."""
+    from otprof.models.sqf_h.data import INPUTS
+
+    assert set(INPUTS) <= set(FEATURES)
 
 
 def test_gradients_to_level_above(canonical):

@@ -55,6 +55,14 @@ def test_quantile_mapper_roundtrip_exact(grid, per_level):
     xr.testing.assert_identical(qm.transform(_ds(2)), loaded.transform(_ds(2)))
 
 
+@pytest.mark.parametrize("per_level", [False, True])
+def test_quantile_mapper_keeps_dtype(per_level):
+    """Mapped values have the dtype of the input (float32 predictions stay float32)."""
+    qm = QuantileMapper(n_quantiles=20, vars=["a"], per_level=per_level, grid="sine").fit(X_obs=_ds(0), X_model=_ds(1))
+    ds = _ds(2).astype("float32")
+    assert qm.transform(ds)["a"].dtype == np.float32
+
+
 def test_transforms_forward_inverse():
     ds = _ds()
     tf = Transforms({"b": ["log10_clip", {"min": 1e-8}]})

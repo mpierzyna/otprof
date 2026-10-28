@@ -5,7 +5,7 @@ pipeline: sqf_h               # otprof.models.sqf_h.data: variables, target tran
 data:
   root: data/nl               # domain data dir, layout of examples/new_domain
   inputs: 4_features_interp/X_wrf_pl.nc
-# features: all of the pipeline's inputs (otprof.features.FEATURES)
+# features: all of the pipeline's inputs (otprof.models.sqf_h.data.INPUTS)
 forcings: [z_agl, lz]         # z_agl first: the vertical-gradient loss reads it
 targets: [lcn2, QKE, TSQ, EL_PBL]
 model:

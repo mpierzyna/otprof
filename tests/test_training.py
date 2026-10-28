@@ -5,7 +5,6 @@ import lightning as L
 import pytest
 import torch
 
-from otprof import features
 from otprof.experiment import Experiment, ExperimentConfig
 from otprof.models.sqf_h.model import SqueezeformerHModel
 from otprof.training import get_torch_dataset, get_torch_loader, train
@@ -40,8 +39,8 @@ def _eval_loss(lit, loader) -> float:
 def test_profile_dataset_order(exp):
     """Surface variables first, then profiles, each in feature order; forcings and targets as configured."""
     data = get_torch_dataset(exp, "train")
-    sfc = [f for f in features.FEATURES if "bottom_top" not in exp.pipeline.ds_X[f].dims]
-    assert data.vars_X == sfc + [f for f in features.FEATURES if f not in sfc]
+    sfc = [f for f in exp.features if "bottom_top" not in exp.pipeline.ds_X[f].dims]
+    assert data.vars_X == sfc + [f for f in exp.features if f not in sfc]
     assert data.vars_y_frc == ["z_agl", "lz"] and data.vars_y == ["lcn2", "QKE", "TSQ", "EL_PBL"]
     x, frc, y = data[0]
     assert x.shape == (4, 25) and frc.shape == (4, 2) and y.shape == (4, 4)

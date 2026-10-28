@@ -51,7 +51,7 @@ def test_steps_2_to_5(example_dir):
     X_wrf = xr.open_dataset(root / "4_features_interp" / "X_wrf_pl.nc")
     y = xr.open_dataset(root / "3_features" / "y_wrf.nc")
     for X in (X_era5, X_wrf):
-        assert list(X.data_vars) == features.FEATURES
+        assert list(X.data_vars) == list(features.FEATURES)
         assert X["p_level"].values.tolist() == list(schema.P_LEVELS_HPA[:-1])
     # same samples on both sides
     assert X_era5.sizes["loc"] == X_wrf.sizes["loc"] == y.sizes["loc"] > 0

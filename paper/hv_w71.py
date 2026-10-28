@@ -40,9 +40,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     exp = Experiment.from_config(args.config, data_root=args.data_root)
-    exp.pipeline.load_data()  # data part of setup(); no fitting needed for unscaled inputs
-    exp.pipeline.fill_gaps()
-    exp.pipeline.make_features()
+    exp.pipeline.prepare_data()  # no fitting needed for unscaled inputs
     X_test, y_test = exp.pipeline.split("test", transform=False)
     args.out.mkdir(parents=True, exist_ok=True)
     compute_hv_w71(X_test, y_test).reset_index("sample").to_netcdf(args.out / f"{args.basename}_ref.nc")
