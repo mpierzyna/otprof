@@ -2,7 +2,8 @@
 
 The surface Cn2 comes from the W71 surface CT2 of the inputs (`lct2_w71f`) with the pressure of the lowest input level
 and the 2 m temperature; the HV profile uses the wind speed of the input profile and is evaluated at the target
-heights. No training. Writes `<out>/<basename>_ref.nc` (`lcn2_hv` on the test samples of the experiment's split).
+heights. No training. Writes `<out>/<basename>_ref.nc` (`lcn2_hv` on the test samples of the experiment's split;
+`--sel-test` replaces the test selection as in `predict_test.py`).
 
     uv run python paper/hv_w71.py examples/configs/wrf_pl_h.yaml --data-root <domain data dir> --out <dir>
 """
@@ -10,12 +11,13 @@ heights. No training. Writes `<out>/<basename>_ref.nc` (`lcn2_hv` on the test sa
 from __future__ import annotations
 
 import argparse
+import json
 import pathlib
 
 import numpy as np
 import xarray as xr
 
-from otprof.experiment import Experiment
+from otprof.experiment import Experiment, ExperimentConfig
 from otprof.features import get_wind_mag_dir
 from otprof.physics import profiles
 
@@ -37,9 +39,13 @@ if __name__ == "__main__":
     parser.add_argument("--data-root", type=pathlib.Path, help="domain data dir (default: the config's data.root)")
     parser.add_argument("--out", type=pathlib.Path, required=True)
     parser.add_argument("--basename", default="wrfpl")
+    parser.add_argument("--sel-test", type=json.loads, help="test selection as JSON (default: the config's)")
     args = parser.parse_args()
 
-    exp = Experiment.from_config(args.config, data_root=args.data_root)
+    config = ExperimentConfig.from_yaml(args.config)
+    if args.sel_test is not None:
+        config = config.model_copy(update={"data": config.data.model_copy(update={"sel_test": args.sel_test})})
+    exp = Experiment.from_config(config, data_root=args.data_root)
     exp.pipeline.prepare_data()  # no fitting needed for unscaled inputs
     X_test, y_test = exp.pipeline.split("test", transform=False)
     args.out.mkdir(parents=True, exist_ok=True)

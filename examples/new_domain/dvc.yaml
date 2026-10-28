@@ -3,7 +3,7 @@ stages:
   download_era5:
     foreach: ${domains}
     do:
-      cmd: python step_1_download_era5.py ${key}
+      cmd: uv run python step_1_download_era5.py ${key}
       params:
         - domains.${key}.area
       deps:
@@ -14,7 +14,7 @@ stages:
   align:
     foreach: ${domains}
     do:
-      cmd: python step_2_align.py ${key}
+      cmd: uv run python step_2_align.py ${key}
       params:
         - domains.${key}.crop
         - domains.${key}.dist_th
@@ -27,7 +27,7 @@ stages:
   standardize_era5_wrf:
     foreach: ${domains}
     do:
-      cmd: python step_3_standardize_era5_wrf.py ${key}
+      cmd: uv run python step_3_standardize_era5_wrf.py ${key}
       deps:
         - step_3_standardize_era5_wrf.py
         - data/${key}/2_aligned/era5.nc
@@ -38,7 +38,7 @@ stages:
   filter_cn2:
     foreach: ${domains}
     do:
-      cmd: python step_4_filter_cn2.py ${key}
+      cmd: uv run python step_4_filter_cn2.py ${key}
       deps:
         - step_4_filter_cn2.py
         - data/${key}/3_targets/y_wrf_all.nc
@@ -47,7 +47,7 @@ stages:
   wrf_to_pl:
     foreach: ${domains}
     do:
-      cmd: python step_5_wrf_to_pl.py ${key}
+      cmd: uv run python step_5_wrf_to_pl.py ${key}
       deps:
         - step_5_wrf_to_pl.py
         - data/${key}/2_aligned/wrf.nc

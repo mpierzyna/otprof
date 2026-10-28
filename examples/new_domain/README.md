@@ -2,7 +2,8 @@
 
 These scripts turn WRF Cn2 simulations of a new domain into a training dataset. Each step is a small script
 that calls a few `otprof` functions and writes NetCDF files you can open and check before running the next step. The
-same steps run in the research repository as a DVC pipeline. `dvc.yaml` here does the same if you want caching.
+same steps run in the research repository as a DVC pipeline. `dvc.yaml` here does the same if you want caching
+(`uvx dvc repro`).
 
 ```
 WRF Cn2 output (otprof-wrf)  ─┐
@@ -15,18 +16,14 @@ The dataset holds the inputs in the canonical form of `otprof.schema` (names, un
 particular model: each model computes its own inputs from them when it loads the data (SQF-H:
 `otprof.models.sqf_h.inputs.make_inputs`), and the same function runs at inference.
 
-## Setup
-
-```bash
-pip install "otprof[data]"     # or: uv sync --extra data, in a clone of otprof
-```
+## Before you start
 
 1. Run the WRF simulations of your domain with [otprof-wrf](https://github.com/mpierzyna/otprof-wrf). The step
    scripts read its post-processed output, `wrfout_aux_*_cn2.nc`.
 2. Add the domain to `params.yaml`: where the WRF output is, the ERA5 area to download, and two alignment settings
    (`crop`, `dist_th`, see step 2).
-3. Run the steps one after another with the domain name as the only argument, e.g. `python step_2_align.py nl`. All
-   output goes to `data/<domain>/` (or to `$OTPROF_DATA_ROOT/<domain>/`).
+3. Run the steps one after another with the domain name as the only argument, e.g.
+   `uv run python step_2_align.py nl`. All output goes to `data/<domain>/` (or to `$OTPROF_DATA_ROOT/<domain>/`).
 
 ## Steps
 

@@ -10,12 +10,6 @@ inspect (e.g. with `xarray` or `ncview`) before running the next one.
                     data/y.nc         (Cn2 profiles, r0, scintillation)
 ```
 
-## Setup
-
-Install otprof with the extras for data download, the network and the Hugging Face download:
-
-    pip install "otprof[data,torch,hub]"
-
 ## Choose what to predict
 
 Edit `params.yaml`:
@@ -30,9 +24,9 @@ steps) downloads 4.6 GB and keeps less than 1 MB.
 
 ## Run
 
-    python step_1_download_era5.py
-    python step_2_standardize.py
-    python step_3_predict.py
+    uv run python step_1_download_era5.py
+    uv run python step_2_standardize.py
+    uv run python step_3_predict.py
 
 ## Output (`data/y.nc`)
 

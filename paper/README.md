@@ -15,7 +15,6 @@ All commands are run from the top folder of the otprof repository. The example f
   - `3_targets/y_wrf.nc`: the WRF Cn2 profiles (targets),
   - for the control experiment also `3_inputs/wrf_native.nc` (WRF on its own model levels; not built by
     `examples/new_domain`).
-- **otprof** with the training extras: `pip install "otprof[data,train]"`.
 
 ## The experiments
 
@@ -32,9 +31,9 @@ Each experiment is one settings file in `configs/`:
 
 Each command trains one model on the nl years 2019-2020 (2018 for validation) and saves it in a run folder:
 
-    python examples/train.py paper/configs/wrf_pl_h.yaml --data-root data/nl --save-dir runs --version wrf_pl_h
-    python examples/train.py paper/configs/wrf_native_h.yaml --data-root data/nl --save-dir runs --version wrf_native_h
-    python examples/train.py paper/configs/era5_pl_h_direct.yaml --data-root data/nl --save-dir runs --version era5_pl_h_direct
+    uv run python examples/train.py paper/configs/wrf_pl_h.yaml --data-root data/nl --save-dir runs --version wrf_pl_h
+    uv run python examples/train.py paper/configs/wrf_native_h.yaml --data-root data/nl --save-dir runs --version wrf_native_h
+    uv run python examples/train.py paper/configs/era5_pl_h_direct.yaml --data-root data/nl --save-dir runs --version era5_pl_h_direct
 
 The models end up in `runs/lightning_logs/wrf_pl_h` etc. Training needs a GPU.
 
@@ -45,38 +44,38 @@ The models end up in `runs/lightning_logs/wrf_pl_h` etc. Training needs a GPU.
 
 WRF-PL: the decoupled model with the WRF inputs it was trained on.
 
-    python paper/predict_test.py paper/configs/wrf_pl_h.yaml --model runs/lightning_logs/wrf_pl_h \
+    uv run python paper/predict_test.py paper/configs/wrf_pl_h.yaml --model runs/lightning_logs/wrf_pl_h \
         --data-root data/nl --out preds/nl --basename wrfpl
 
 ERA5-PL: the same model, but with ERA5 inputs (`--inputs` replaces the inputs file).
 
-    python paper/predict_test.py paper/configs/wrf_pl_h.yaml --model runs/lightning_logs/wrf_pl_h \
+    uv run python paper/predict_test.py paper/configs/wrf_pl_h.yaml --model runs/lightning_logs/wrf_pl_h \
         --data-root data/nl --out preds/nl --basename era5pl --inputs 3_inputs/era5_pl.nc
 
 Ctl. and ERA5-PL direct:
 
-    python paper/predict_test.py paper/configs/wrf_native_h.yaml --model runs/lightning_logs/wrf_native_h \
+    uv run python paper/predict_test.py paper/configs/wrf_native_h.yaml --model runs/lightning_logs/wrf_native_h \
         --data-root data/nl --out preds/nl --basename wrfnative
 
-    python paper/predict_test.py paper/configs/era5_pl_h_direct.yaml --model runs/lightning_logs/era5_pl_h_direct \
+    uv run python paper/predict_test.py paper/configs/era5_pl_h_direct.yaml --model runs/lightning_logs/era5_pl_h_direct \
         --data-root data/nl --out preds/nl --basename era5pl_direct
 
 HV+W71 baseline:
 
-    python paper/hv_w71.py paper/configs/wrf_pl_h.yaml --data-root data/nl --out preds/nl
+    uv run python paper/hv_w71.py paper/configs/wrf_pl_h.yaml --data-root data/nl --out preds/nl
 
 ## Step 3: output quantile mapping on nl (NL-oQM)
 
 The output quantile mapping corrects the distribution of the ERA5-driven Cn2 predictions towards WRF. It is fitted on
 the training years, so first predict them with ERA5 inputs (`--sel-test` selects the years to predict):
 
-    python paper/predict_test.py paper/configs/wrf_pl_h.yaml --model runs/lightning_logs/wrf_pl_h \
+    uv run python paper/predict_test.py paper/configs/wrf_pl_h.yaml --model runs/lightning_logs/wrf_pl_h \
         --data-root data/nl --out preds/nl --basename era5pl_trainyears --inputs 3_inputs/era5_pl.nc \
         --sel-test '{"year": [2019, 2020]}'
 
 Then fit the mapping and apply it to the 2017 ERA5 predictions:
 
-    python paper/fit_oqm.py nl --pred-dir preds/nl
+    uv run python paper/fit_oqm.py nl --pred-dir preds/nl
 
 This writes the mapping (`preds/nl/oqm_nl.json`; the published model carries the same mapping) and the corrected
 predictions `preds/nl/era5pl_oqmsine_y_pred.nc`.
@@ -87,20 +86,23 @@ The nl model is applied to the Canary Islands without any retraining. The canari
 split into three groups of four months: A (months 1, 4, 7, 10), B (2, 5, 8, 11) and C (3, 6, 9, 12). Each group is
 predicted separately, with WRF and with ERA5 inputs (`--no-oqm`: without any output quantile mapping). Group A:
 
-    python paper/predict_test.py paper/configs/wrf_pl_h.yaml --model runs/lightning_logs/wrf_pl_h \
+    uv run python paper/predict_test.py paper/configs/wrf_pl_h.yaml --model runs/lightning_logs/wrf_pl_h \
         --data-root data/canaries --out preds/canaries/A --basename wrfpl \
         --sel-test '{"month": [1, 4, 7, 10]}' --no-oqm
 
-    python paper/predict_test.py paper/configs/wrf_pl_h.yaml --model runs/lightning_logs/wrf_pl_h \
+    uv run python paper/predict_test.py paper/configs/wrf_pl_h.yaml --model runs/lightning_logs/wrf_pl_h \
         --data-root data/canaries --out preds/canaries/A --basename era5pl --inputs 3_inputs/era5_pl.nc \
         --sel-test '{"month": [1, 4, 7, 10]}' --no-oqm
 
 and the same for group B (`--out preds/canaries/B --sel-test '{"month": [2, 5, 8, 11]}'`) and group C
-(`--out preds/canaries/C --sel-test '{"month": [3, 6, 9, 12]}'`).
+(`--out preds/canaries/C --sel-test '{"month": [3, 6, 9, 12]}'`). The HV+W71 baseline of a group:
+
+    uv run python paper/hv_w71.py paper/configs/wrf_pl_h.yaml --data-root data/canaries --out preds/canaries/A \
+        --sel-test '{"month": [1, 4, 7, 10]}'
 
 Finally the output quantile mappings:
 
-    python paper/fit_oqm.py canaries --nl-oqm preds/nl/oqm_nl.json --data-root data/canaries \
+    uv run python paper/fit_oqm.py canaries --nl-oqm preds/nl/oqm_nl.json --data-root data/canaries \
         --group A=preds/canaries/A --group B=preds/canaries/B --group C=preds/canaries/C
 
 - NL-oQM: the mapping fitted on nl, applied to every group (`era5pl_oqmcn2nl_y_pred.nc`).
@@ -110,6 +112,5 @@ Finally the output quantile mappings:
 ## Using the published model instead of training
 
 The published model is the WRF-PL model with the NL-oQM included. Use `--model maxiimilian/otprof-sqfh` instead of
-`--model runs/lightning_logs/wrf_pl_h` (needs `pip install "otprof[hub]"`). It applies the NL-oQM by default, so add
-`--no-oqm` wherever uncorrected predictions are needed (the WRF-PL and ERA5-PL cases and the training-year
-predictions of step 3).
+`--model runs/lightning_logs/wrf_pl_h`. It applies the NL-oQM by default, so add `--no-oqm` wherever uncorrected
+predictions are needed (the WRF-PL and ERA5-PL cases and the training-year predictions of step 3).
