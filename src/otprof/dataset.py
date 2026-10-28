@@ -1,10 +1,10 @@
 """Build a training dataset for a domain from WRF Cn2 output (otprof-wrf) and ERA5. Needs `otprof[data]`.
 
 Steps, as run by `examples/new_domain/` (each writes NetCDF that can be inspected):
-1. `wrf_times` → `otprof.sources.era5.fetch`: download ERA5 for the WRF time steps
+1. `get_wrf_times` → `otprof.sources.era5.fetch`: download ERA5 for the WRF time steps
 2. `align`: pair each ERA5 grid point with the nearest WRF column and keep the common time steps. Pure selection:
    variables, units and levels stay as delivered.
-3. `wrf_targets`: WRF Cn2 profiles and astroclimate parameters (targets); `make_inputs` for the inputs
+3. `make_wrf_targets`: WRF Cn2 profiles and astroclimate parameters (targets); `make_inputs` for the inputs
 4. `filter_cn2`: mask implausible Cn2 profiles and astroclimate values
 """
 
@@ -24,7 +24,7 @@ from otprof.physics import ot
 from otprof.sources import wrf
 
 
-def wrf_times(wrf_files: Sequence[pathlib.Path]) -> xr.DataArray:
+def get_wrf_times(wrf_files: Sequence[pathlib.Path]) -> xr.DataArray:
     """All valid time steps in the WRF files (for the ERA5 download)."""
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")  # "variable 'p' has multiple fill values"
@@ -119,7 +119,7 @@ def _nearest(wrf_lat, wrf_lon, lat, lon) -> tuple[np.ndarray, np.ndarray]:
     return tree.query(np.column_stack((lat, lon)), k=1)
 
 
-def wrf_targets(ds_wrf: xr.Dataset) -> xr.Dataset:
+def make_wrf_targets(ds_wrf: xr.Dataset) -> xr.Dataset:
     """WRF on its model levels with canonical names, plus height above ground, wind and the astroclimate targets.
 
     `ds_wrf`: aligned WRF output (native names). Profile targets are `cn2`, `QKE`, `TSQ`, `EL_PBL` on
@@ -127,12 +127,12 @@ def wrf_targets(ds_wrf: xr.Dataset) -> xr.Dataset:
     """
     ds = wrf.standardize(ds_wrf, grid="model")
     ds["z_agl"] = (ds["z"] - ds["z_sfc_src"]).assign_attrs(long_name="Height above ground", units="m")
-    ds = ds.assign(features.wind(ds["u"], ds["v"]))
-    ds = ds.assign(astroclim_targets(cn2=ds["cn2"], m=ds["m"], z_agl=ds["z_agl"], blh=ds["blh"]))
+    ds = ds.assign(features.get_wind_mag_dir(ds["u"], ds["v"]))
+    ds = ds.assign(compute_astroclim_targets(cn2=ds["cn2"], m=ds["m"], z_agl=ds["z_agl"], blh=ds["blh"]))
     return ds
 
 
-def astroclim_targets(cn2: xr.DataArray, m: xr.DataArray, z_agl: xr.DataArray, blh: xr.DataArray) -> dict:
+def compute_astroclim_targets(cn2: xr.DataArray, m: xr.DataArray, z_agl: xr.DataArray, blh: xr.DataArray) -> dict:
     """r0, tau0, th0 and log10 scintillation index (plane wave) per region: surface layer (`sl`, below 0.1 BLH),
     boundary layer (`bl`), free atmosphere (`fa`) and the full column. Integrals over `bottom_top`."""
     dim = "bottom_top"

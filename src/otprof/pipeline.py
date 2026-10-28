@@ -15,7 +15,7 @@ Functions in the config (named selectors, `fe_fns`) are stored by name and resol
 used, so a saved pipeline loads without them (e.g. for inference).
 
 `ProfilePipeline` reads the dataset files of a domain (see `examples/new_domain`). What a model makes of them (variables,
-transforms, scalers, default split) is defined with the model, e.g. `otprof.models.sqf_h.data.pipeline`.
+transforms, scalers, default split) is defined with the model, e.g. `otprof.models.sqf_h.data.get_pipeline`.
 """
 
 from __future__ import annotations
@@ -295,7 +295,7 @@ class BaseDataPipeline(pydantic.BaseModel, abc.ABC):
         return dp.load_steps(dp_dir, steps=steps or STEPS)
 
 
-def warped_height(z_agl: xr.DataArray) -> xr.DataArray:
+def compute_warped_height(z_agl: xr.DataArray) -> xr.DataArray:
     """lz = log1p(z_agl / LZ_REF) / LZ_NORM (`otprof.schema`), as in `make_inputs`; below ground clipped to 0."""
     return np.log1p(z_agl.clip(min=0) / schema.LZ_REF) / schema.LZ_NORM
 
@@ -317,7 +317,7 @@ class ProfilePipeline(BaseDataPipeline):
     def load_data(self) -> None:
         ds_X = xr.load_dataset(self.data_root / self.inputs).drop_vars("p_level", errors="ignore")
         ds_y = xr.load_dataset(self.data_root / self.targets).isel(bottom_top=slice(0, -1))
-        ds_y["lz"] = warped_height(ds_y["z_agl"])
+        ds_y["lz"] = compute_warped_height(ds_y["z_agl"])
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=RuntimeWarning)  # log10(0) and NaN: dropped below
             ds_y["lcn2"] = np.log10(ds_y["cn2"])

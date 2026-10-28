@@ -21,11 +21,23 @@ data = [
     "dask>=2024.1",
     "pyyaml>=6",
 ]
+# Loading and running models: the network, safetensors weights
+torch = [
+    "torch>=2.4",
+    "safetensors>=0.4",
+]
+# Training: Lightning loop, TensorBoard logging with sample plots
+train = [
+    "otprof[torch]",
+    "lightning>=2.4",
+    "tensorboardx>=2.6",
+    "matplotlib>=3.8",
+]
 
 [dependency-groups]
 dev = [
     "pytest>=8",
-    "otprof[data]",
+    "otprof[data,train]",
 ]
 
 [build-system]

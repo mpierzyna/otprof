@@ -34,7 +34,7 @@ pip install "otprof[data]"     # or: uv sync --extra data, in a clone of otprof
 | 4 | `step_4_filter_cn2.py` | `3_features/y_wrf.nc` | share of profiles kept |
 | 5 | `step_5_wrf_to_pl.py` | `4_features_interp/X_wrf_pl.nc` | WRF inputs resemble the ERA5 inputs |
 
-**1. Download ERA5.** `otprof.dataset.wrf_times` reads the time steps of the WRF output and
+**1. Download ERA5.** `otprof.dataset.get_wrf_times` reads the time steps of the WRF output and
 `otprof.sources.era5.fetch` opens ERA5 (pressure levels and surface) for these times and the area from the cloud
 copy of ERA5 (ARCO-ERA5). Every time step is downloaded for the whole globe and cut to the area, which takes a while.
 
@@ -45,7 +45,7 @@ Nothing is converted: ERA5 and WRF keep their own names, units and levels, so `2
 dataset. WRF files are read in parallel (`N_WORKERS`); reading is limited by decompression.
 
 **3. Features and targets.**
-- `otprof.dataset.wrf_targets`: the WRF profiles on the model levels with canonical names (`cn2`, `QKE`, `TSQ`,
+- `otprof.dataset.make_wrf_targets`: the WRF profiles on the model levels with canonical names (`cn2`, `QKE`, `TSQ`,
   `EL_PBL`, `z_agl`, ...) and the astroclimate parameters r0, tau0, th0 and the scintillation index for the surface
   layer, boundary layer, free atmosphere and full column.
 - `otprof.sources.era5.standardize` converts ERA5 to the canonical inputs (`otprof.schema`: units, sign conventions,

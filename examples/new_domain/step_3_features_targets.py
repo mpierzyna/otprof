@@ -17,7 +17,7 @@ if __name__ == "__main__":
     out = root / "3_features"
     out.mkdir(exist_ok=True)
 
-    y = dataset.wrf_targets(xr.load_dataset(root / "2_aligned" / "wrf.nc"))
+    y = dataset.make_wrf_targets(xr.load_dataset(root / "2_aligned" / "wrf.nc"))
     y.to_netcdf(out / "y_wrf_all.nc")
 
     era5_canonical = era5.standardize(xr.load_dataset(root / "2_aligned" / "era5.nc"))

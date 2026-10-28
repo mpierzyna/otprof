@@ -81,7 +81,7 @@ def test_wrf_targets_and_filter(tmp_path):
     files = write_wrf_files(tmp_path, n_files=1)
     era5 = make_era5(pd.date_range("2017-01-01", periods=2, freq="6h"))
     _, wrf, _ = dataset.align(era5, files, crop=1, dist_th=0.02)
-    y = dataset.wrf_targets(wrf)
+    y = dataset.make_wrf_targets(wrf)
     for v in ["z_agl", "m", "d_sin", "r0_full", "r0_bl", "tau0_fa", "th0_sl", "lsi2_full"]:
         assert v in y, v
     assert float(y["r0_full"].min()) > 0
@@ -99,4 +99,4 @@ def test_wrf_targets_rejects_incomplete_output(tmp_path, missing):
     files = write_wrf_files(tmp_path, n_files=1)
     _, wrf, _ = dataset.align(make_era5(pd.date_range("2017-01-01", periods=2, freq="6h")), files, crop=1, dist_th=0.02)
     with pytest.raises(ValueError):
-        dataset.wrf_targets(wrf.drop_vars(missing))
+        dataset.make_wrf_targets(wrf.drop_vars(missing))

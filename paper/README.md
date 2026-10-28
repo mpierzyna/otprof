@@ -17,4 +17,4 @@ WRF output, not part of the example. Pass the domain directory with `--data-root
 | HV+W71 baseline | `hv_w71.py` |
 | NL-oQM, canaries zero-shot and CI-oQM | follow with prediction and the output quantile mapping (migration step 8) |
 
-Train: `uv run python examples/train.py <config> --data-root <dir>` (migration step 7).
+Train: `uv run python examples/train.py <config> --data-root <dir>` (needs `otprof[train]`).

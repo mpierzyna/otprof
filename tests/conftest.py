@@ -1,9 +1,11 @@
+import pathlib
+
 import numpy as np
 import pandas as pd
 import pytest
 import xarray as xr
 
-from otprof import schema
+from otprof import features, schema
 
 
 def make_canonical(n_time: int = 3, n_loc: int = 2, seed: int = 0) -> xr.Dataset:
@@ -45,3 +47,45 @@ def make_canonical(n_time: int = 3, n_loc: int = 2, seed: int = 0) -> xr.Dataset
 @pytest.fixture
 def canonical() -> xr.Dataset:
     return make_canonical()
+
+
+@pytest.fixture
+def domain(tmp_path) -> pathlib.Path:
+    """Synthetic domain (layout of examples/new_domain): X_wrf_pl.nc (all features, 4 levels, random except `valid`
+    and `lz`) and y_wrf.nc (5 levels), 2017-2020, one invalid profile."""
+    rng = np.random.default_rng(0)
+    time = pd.date_range("2017-01-01", "2020-12-31", freq="30D")
+    n_t, n_loc, n_x, n_y = len(time), 3, 4, 5
+    coords = {"time": time, "loc": np.arange(n_loc), "lat": ("loc", [50.0, 51, 52]), "lon": ("loc", [4.0, 5, 6])}
+    profile = {"z_agl", "p", "u", "v", "th", "S", "dth_dz", "valid", "lz"}
+    X = xr.Dataset(
+        {
+            f: (("time", "bottom_top", "loc"), rng.normal(size=(n_t, n_x, n_loc)).astype("float32"))
+            if f in profile
+            else (("time", "loc"), rng.normal(size=(n_t, n_loc)).astype("float32"))
+            for f in features.FEATURES
+        },
+        coords=coords,
+    )
+    # Physical mask and height coordinate (SQF-H reads them unscaled): first level underground at the first location
+    X["valid"][:] = 1.0
+    X["valid"][:, 0, 0] = 0.0
+    X["lz"][:] = np.linspace(0.1, 0.9, n_x, dtype="float32")[None, :, None]
+    z_agl = np.broadcast_to(np.array([10.0, 50, 200, 1_000, 5_000])[None, :, None], (n_t, n_y, n_loc))
+    y = xr.Dataset(
+        {
+            "cn2": (("time", "bottom_top", "loc"), 10 ** rng.uniform(-17, -14, (n_t, n_y, n_loc))),
+            "QKE": (("time", "bottom_top", "loc"), rng.uniform(0, 2, (n_t, n_y, n_loc))),
+            "TSQ": (("time", "bottom_top", "loc"), rng.uniform(0, 1, (n_t, n_y, n_loc))),
+            "EL_PBL": (("time", "bottom_top", "loc"), rng.uniform(1, 100, (n_t, n_y, n_loc))),
+            "z_agl": (("time", "bottom_top", "loc"), z_agl.copy()),
+            "z": (("time", "bottom_top", "loc"), z_agl + 20),
+        },
+        coords=coords,
+    )
+    y["cn2"][0, 2, 1] = np.nan  # filtered profile
+    (tmp_path / "4_features_interp").mkdir()
+    (tmp_path / "3_features").mkdir()
+    X.to_netcdf(tmp_path / "4_features_interp" / "X_wrf_pl.nc")
+    y.to_netcdf(tmp_path / "3_features" / "y_wrf.nc")
+    return tmp_path

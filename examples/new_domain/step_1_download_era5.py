@@ -17,7 +17,7 @@ if __name__ == "__main__":
     out_file.parent.mkdir(parents=True, exist_ok=True)
 
     wrf_files = sorted((domain.HERE / params["wrf_output"]).glob("**/wrfout_aux_*_cn2.nc"))
-    times = dataset.wrf_times(wrf_files)
+    times = dataset.get_wrf_times(wrf_files)
     print(f"{len(wrf_files)} WRF files, {len(times)} time steps")
 
     ds, sizes = era5.fetch(times, **params["area"])

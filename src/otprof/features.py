@@ -97,7 +97,7 @@ def make_inputs(
         "S": S,
         "dth_dz": dth_dz,
         **{v: ds[v] for v in ["ust", "hfx", "lh", "blh", "u10", "v10", "tk2", "slp", "lsm"]},
-        **time_features(ds["time"]),
+        **get_time_features(ds["time"]),
         "lct2_w71f": np.log10(sfc_ct2_w71(ust=ds["ust"], hfx=ds["hfx"], tk2=ds["tk2"], L_bounds=w71_L_bounds)),
         "valid": valid.isel(full),
         "lz": lz.isel(full),
@@ -138,7 +138,7 @@ def sfc_ct2_w71(
     return ct2.assign_attrs(long_name="Surface CT2 at 2 m (W71 flux model)", units="K2 m-2/3")
 
 
-def wind(u: xr.DataArray, v: xr.DataArray) -> dict[str, xr.DataArray]:
+def get_wind_mag_dir(u: xr.DataArray, v: xr.DataArray) -> dict[str, xr.DataArray]:
     """Wind speed `m` [m s-1] and the direction the wind comes from `d` [deg], also as `d_sin`, `d_cos`."""
     m = np.sqrt(u**2 + v**2).astype(np.float32).assign_attrs(long_name="Wind speed", units="m s-1")
     d = np.rad2deg(np.arctan2(-u, -v)).astype(np.float32).assign_attrs(long_name="Wind direction", units="deg")
@@ -147,7 +147,7 @@ def wind(u: xr.DataArray, v: xr.DataArray) -> dict[str, xr.DataArray]:
     return {"m": m, "d": d, "d_sin": d_sin, "d_cos": d_cos}
 
 
-def time_features(time: xr.DataArray) -> dict[str, xr.DataArray]:
+def get_time_features(time: xr.DataArray) -> dict[str, xr.DataArray]:
     """Hour of day and day of year as sine / cosine."""
     t = time.dt
     return {

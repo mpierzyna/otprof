@@ -16,17 +16,17 @@ import numpy as np
 import xarray as xr
 
 from otprof.experiment import Experiment
-from otprof.features import wind
+from otprof.features import get_wind_mag_dir
 from otprof.physics import profiles
 
 
-def hv_w71(X: xr.Dataset, y: xr.Dataset) -> xr.Dataset:
+def compute_hv_w71(X: xr.Dataset, y: xr.Dataset) -> xr.Dataset:
     """log10 HV+W71 Cn2 at the target heights `y["z_agl"]` from the unscaled inputs `X` (samples, `bottom_top`)."""
     p_0 = X["p"].isel(bottom_top=0) / 100  # hPa
     ct2_0 = 10 ** X["lct2_w71f"]
     cn2_0 = (79e-6 * p_0 / X["tk2"] ** 2) ** 2 * ct2_0  # CT2 -> Cn2 (optical, dry air)
     cn2_hv = profiles.hufnagel_valley_xr(
-        cn2_0=cn2_0, m=wind(X["u"], X["v"])["m"], z=X["z_agl"], z_eval=y["z_agl"], dim="bottom_top"
+        cn2_0=cn2_0, m=get_wind_mag_dir(X["u"], X["v"])["m"], z=X["z_agl"], z_eval=y["z_agl"], dim="bottom_top"
     )
     return xr.Dataset({"lcn2_hv": np.log10(cn2_hv)})
 
@@ -45,5 +45,5 @@ if __name__ == "__main__":
     exp.pipeline.make_features()
     X_test, y_test = exp.pipeline.split("test", transform=False)
     args.out.mkdir(parents=True, exist_ok=True)
-    hv_w71(X_test, y_test).reset_index("sample").to_netcdf(args.out / f"{args.basename}_ref.nc")
+    compute_hv_w71(X_test, y_test).reset_index("sample").to_netcdf(args.out / f"{args.basename}_ref.nc")
     print(f"Reference profiles saved to {args.out / args.basename}_ref.nc")

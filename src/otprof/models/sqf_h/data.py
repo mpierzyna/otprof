@@ -1,6 +1,6 @@
 """SQF-H data processing: inputs, targets, target transforms, scalers and the default split.
 
-`pipeline(data_root)` builds the pipeline on the dataset files of a domain; experiments refer to it by name
+`get_pipeline(data_root)` builds the pipeline on the dataset files of a domain; experiments refer to it by name
 (`pipeline: sqf_h`) and choose the inputs file (WRF-PL for the production model; native WRF or ERA5-PL for the paper's
 comparison models) and, if needed, other selectors. A saved run restores its resolved pipeline, not this function.
 """
@@ -62,7 +62,7 @@ TRANSFORMS_Y = {
 }
 
 
-def pipeline(data_root: pathlib.Path) -> ProfilePipeline:
+def get_pipeline(data_root: pathlib.Path) -> ProfilePipeline:
     """SQF-H: all `otprof.features.FEATURES` as inputs, the WRF turbulence targets and heights; log10 of QKE, TSQ and
     EL_PBL before scaling; paper split. The inputs file (WRF-PL, ERA5-PL, native WRF) is chosen by the experiment."""
     return ProfilePipeline(

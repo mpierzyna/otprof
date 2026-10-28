@@ -1,54 +1,15 @@
 import pathlib
 
 import numpy as np
-import pandas as pd
 import pytest
 import xarray as xr
 
 from otprof import features
-from otprof.experiment import Experiment, ExperimentConfig, pipeline_from_config
+from otprof.experiment import Experiment, ExperimentConfig, get_pipeline_from_config
 from otprof.pipeline import ProfilePipeline
 
 REPO = pathlib.Path(__file__).parents[1]
 CONFIGS = sorted([*(REPO / "examples" / "configs").glob("*.yaml"), *(REPO / "paper" / "configs").glob("*.yaml")])
-
-
-@pytest.fixture
-def domain(tmp_path) -> pathlib.Path:
-    """Synthetic domain (layout of examples/new_domain): X_wrf_pl.nc (all features, 4 levels) and y_wrf.nc (5 levels),
-    2017-2020, one invalid profile."""
-    rng = np.random.default_rng(0)
-    time = pd.date_range("2017-01-01", "2020-12-31", freq="30D")
-    n_t, n_loc, n_x, n_y = len(time), 3, 4, 5
-    coords = {"time": time, "loc": np.arange(n_loc), "lat": ("loc", [50.0, 51, 52]), "lon": ("loc", [4.0, 5, 6])}
-    profile = {"z_agl", "p", "u", "v", "th", "S", "dth_dz", "valid", "lz"}
-    X = xr.Dataset(
-        {
-            f: (("time", "bottom_top", "loc"), rng.normal(size=(n_t, n_x, n_loc)).astype("float32"))
-            if f in profile
-            else (("time", "loc"), rng.normal(size=(n_t, n_loc)).astype("float32"))
-            for f in features.FEATURES
-        },
-        coords=coords,
-    )
-    z_agl = np.broadcast_to(np.array([10.0, 50, 200, 1_000, 5_000])[None, :, None], (n_t, n_y, n_loc))
-    y = xr.Dataset(
-        {
-            "cn2": (("time", "bottom_top", "loc"), 10 ** rng.uniform(-17, -14, (n_t, n_y, n_loc))),
-            "QKE": (("time", "bottom_top", "loc"), rng.uniform(0, 2, (n_t, n_y, n_loc))),
-            "TSQ": (("time", "bottom_top", "loc"), rng.uniform(0, 1, (n_t, n_y, n_loc))),
-            "EL_PBL": (("time", "bottom_top", "loc"), rng.uniform(1, 100, (n_t, n_y, n_loc))),
-            "z_agl": (("time", "bottom_top", "loc"), z_agl.copy()),
-            "z": (("time", "bottom_top", "loc"), z_agl + 20),
-        },
-        coords=coords,
-    )
-    y["cn2"][0, 2, 1] = np.nan  # filtered profile
-    (tmp_path / "4_features_interp").mkdir()
-    (tmp_path / "3_features").mkdir()
-    X.to_netcdf(tmp_path / "4_features_interp" / "X_wrf_pl.nc")
-    y.to_netcdf(tmp_path / "3_features" / "y_wrf.nc")
-    return tmp_path
 
 
 def land_months(p):
@@ -66,7 +27,7 @@ def _config(root, top: dict | None = None, **data) -> ExperimentConfig:
 def test_configs_resolve(path, tmp_path):
     """Every shipped config validates and resolves to a pipeline with its variables (no data needed)."""
     config = ExperimentConfig.from_yaml(path)
-    exp = Experiment(config, pipeline_from_config(config, tmp_path))
+    exp = Experiment(config, get_pipeline_from_config(config, tmp_path))
     assert exp.features == list(features.FEATURES)
     assert exp.pipeline.inputs == config.data.inputs
 
@@ -76,7 +37,7 @@ def test_unknown_keys_and_variables_fail(tmp_path):
         ExperimentConfig.model_validate({**_config(tmp_path).model_dump(), "batch": 1})
     config = _config(tmp_path, top={"targets": ["lcn2", "nope"]})
     with pytest.raises(ValueError, match="target `nope`"):
-        Experiment(config, pipeline_from_config(config, tmp_path))
+        Experiment(config, get_pipeline_from_config(config, tmp_path))
 
 
 def test_profile_pipeline(domain):

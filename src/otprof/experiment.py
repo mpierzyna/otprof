@@ -1,7 +1,7 @@
 """Experiments: one YAML file per experiment (`ExperimentConfig`) and the pipeline built from it (`Experiment`).
 
 The config only holds what belongs to the experiment: the pipeline by name (`PIPELINES`: the model's data processing,
-e.g. `otprof.models.sqf_h.data.pipeline`), the data (root, inputs file, optionally other selectors than the pipeline's default
+e.g. `otprof.models.sqf_h.data.get_pipeline`), the data (root, inputs file, optionally other selectors than the pipeline's default
 split), which variables the model uses, scaler overrides, model and training settings. Example:
 `examples/configs/wrf_pl_h.yaml`.
 
@@ -23,7 +23,7 @@ from otprof.pipeline import PIPELINE_CLASSES, BaseDataPipeline, TimeSel
 from otprof.transforms import DatasetScaler, TScalerConfig
 
 # Name in an experiment config -> function (data_root) -> pipeline. Callers add their own (e.g. research).
-PIPELINES: dict[str, Callable[[pathlib.Path], BaseDataPipeline]] = {"sqf_h": sqf_h_data.pipeline}
+PIPELINES: dict[str, Callable[[pathlib.Path], BaseDataPipeline]] = {"sqf_h": sqf_h_data.get_pipeline}
 
 
 class _Strict(pydantic.BaseModel):
@@ -82,7 +82,7 @@ class ExperimentConfig(_Strict):
         pathlib.Path(path).write_text(yaml.safe_dump(self.model_dump(mode="json"), sort_keys=False))
 
 
-def pipeline_from_config(
+def get_pipeline_from_config(
     config: ExperimentConfig,
     data_root: str | pathlib.Path,
     pipelines: dict[str, Callable] | None = None,
@@ -158,7 +158,7 @@ class Experiment:
         if not isinstance(config, ExperimentConfig):
             config = ExperimentConfig.from_yaml(config)
         data_root = config.data.root if data_root is None else data_root
-        exp = cls(config, pipeline_from_config(config, data_root, pipelines=pipelines, functions=functions))
+        exp = cls(config, get_pipeline_from_config(config, data_root, pipelines=pipelines, functions=functions))
         if hasattr(exp.pipeline, "inputs"):
             exp.check_files()
         return exp
