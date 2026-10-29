@@ -5,8 +5,6 @@ Each model combines them into its own inputs (e.g. `otprof.models.sqf_h.inputs.m
 
 from __future__ import annotations
 
-from typing import Literal
-
 import numpy as np
 import xarray as xr
 
@@ -26,17 +24,21 @@ def sfc_ct2_w71(
     ust: xr.DataArray,
     hfx: xr.DataArray,
     tk2: xr.DataArray,
-    L_bounds: Literal["percentile"] | tuple[float, float] = "percentile",
 ) -> xr.DataArray:
     """Surface CT2 [K2 m-2/3] at 2 m from the W71 flux model (`otprof.physics.most`), clipped at 1e-8.
 
     `ust` friction velocity [m s-1], `hfx` sensible heat flux [W m-2, upward positive], `tk2` 2 m temperature [K].
     """
     shfx = hfx / RHO_CP  # W m-2 -> K m s-1
-    L = -(ust**3) * tk2 / (K_VON_KARMAN * shfx * G)  # Obukhov length
     theta_st = -shfx / ust  # temperature scale
-    ct2 = most.w71_flux_ct2(T_st=theta_st, z=2.0, L=L, L_bounds=None if L_bounds == "percentile" else L_bounds)
+
+    # evaluate at 2m height
+    z = 2.0
+    zeta = z * (K_VON_KARMAN * shfx * G) / (-(ust**3) * tk2)  # z / L
+
+    ct2 = most.w71_flux_ct2(T_st=theta_st, zeta=zeta, z=z)
     ct2 = ct2.clip(1e-8, None)  # avoid zero or negative CT2
+
     return ct2.assign_attrs(long_name="Surface CT2 at 2 m (W71 flux model)", units="K2 m-2/3")
 
 

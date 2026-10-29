@@ -18,10 +18,11 @@ from otprof.features import fill_nearest, get_time_features, potential_temperatu
 from otprof.transforms import TScalerConfig
 
 # Version of the SQF-H inputs (semver). MAJOR: the values of a feature change or a feature is added or removed, so
-# models trained on the old inputs need retraining. MINOR: compatible addition (e.g. new metadata). PATCH: no change
-# to the output (refactoring, docs). A model records the version it was trained with; inputs fit if the MAJOR versions
-# are equal.
-FEATURES_VERSION = "1.0.0"
+# models trained on the old inputs need retraining. MINOR: compatible addition (e.g. new metadata) or a small value
+# change shown not to need retraining. PATCH: no change to the output (refactoring, docs). A model records the version
+# it was trained with; inputs fit if the MAJOR versions are equal.
+# 1.1.0: W71 without clipping of the Obukhov length (changes `lct2_w71f` of near-neutral samples by < 0.02 dex)
+FEATURES_VERSION = "1.1.0"
 
 # The inputs of SQF-H in model order: name -> (kind, scaler). Kind "profile": on the levels (dim `bottom_top`);
 # "surface": one value per column (surface fields, time, surface estimates). Scaler: `otprof.transforms.DatasetScaler`
@@ -87,7 +88,6 @@ def make_inputs(
     ds: xr.Dataset,
     *,
     grid: schema.TGrid | None = None,
-    w71_L_bounds: Literal["percentile"] | tuple[float, float] = "percentile",
 ) -> xr.Dataset:
     """The SQF-H inputs `FEATURES` (unscaled) on the lowest N-1 of the N levels of `ds` (canonical inputs).
 
@@ -97,9 +97,7 @@ def make_inputs(
     - `z_sfc`: the terrain height of the column to predict, `z_sfc_target` if `ds` has it (training data: the WRF
       terrain of the target column), else the source's own terrain `z_sfc_src`. `z_agl` and `valid` always refer to
       the source's own surface.
-    - `w71_L_bounds`: clipping of the Obukhov length for the W71 surface CT2. `"percentile"` clips to the 2.5 / 97.5
-      percentiles of the data passed in (as the training data was built), a tuple to fixed bounds (needed to get the
-      same result for single forecasts).
+    - Every input depends on its own column and time only, not on the other samples passed in.
     """
     grid = schema.get_grid(ds) if grid is None else grid
     schema.validate(ds, grid=grid)
@@ -141,7 +139,7 @@ def make_inputs(
         "dth_dz": dth_dz,
         **{v: ds[v] for v in ["ust", "hfx", "lh", "blh", "u10", "v10", "tk2", "slp", "lsm"]},
         **get_time_features(ds["time"]),
-        "lct2_w71f": np.log10(sfc_ct2_w71(ust=ds["ust"], hfx=ds["hfx"], tk2=ds["tk2"], L_bounds=w71_L_bounds)),
+        "lct2_w71f": np.log10(sfc_ct2_w71(ust=ds["ust"], hfx=ds["hfx"], tk2=ds["tk2"])),
         "valid": valid.isel(full),
         "lz": lz.isel(full),
         "z_sfc": z_sfc.assign_attrs(long_name="Terrain height of the target column", units="m"),

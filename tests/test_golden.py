@@ -15,5 +15,5 @@ def test_era5_inputs_golden():
     golden = xr.open_dataset(DATA / "era5_inputs_golden.nc")
     major = golden.attrs["otprof_features_version"].split(".")[0]
     assert major == FEATURES_VERSION.split(".")[0], "FEATURES_VERSION major bumped: regenerate golden"
-    # MINOR / PATCH changes keep the values of the existing outputs
+    # PATCH changes keep the values; a MINOR change of the values (see FEATURES_VERSION) needs a regenerated golden
     xr.testing.assert_allclose(X[list(golden.data_vars)], golden, rtol=1e-6)

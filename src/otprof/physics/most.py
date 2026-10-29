@@ -6,16 +6,10 @@ import numpy as np
 import xarray as xr
 
 
-def w71_flux_ct2(*, T_st, z, L, L_bounds: tuple[float, float] | None = None):
+def w71_flux_ct2(*, T_st, zeta, z) -> np.ndarray:
     """Flux-based Wyngaard et al. (1971) CT2 with updated constants by Andreas (1989).
-
-    L is clipped to `L_bounds` (min, max), by default to its own 2.5 and 97.5 percentiles. The default depends on the
-    data passed in; use fixed bounds to get the same result for any subset (e.g. single forecasts at inference).
+    `zeta` is the dimensionless height (z / L), where L is the Obukhov length.
     """
-    if L_bounds is None:
-        L_bounds = (np.percentile(L, 2.5), np.percentile(L, 97.5))
-    L = np.clip(L, L_bounds[0], L_bounds[1])
-    zeta = z / L
     zeta_neg = np.where(zeta < 0, zeta, np.nan)  # unstable
     zeta_pos = np.where(zeta >= 0, zeta, np.nan)  # stable
     # from numpy docs: Where True, yield x, otherwise yield y.

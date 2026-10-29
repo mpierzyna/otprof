@@ -1,4 +1,5 @@
-"""Regenerate the golden model inputs after a deliberate MAJOR change (bump `otprof.models.sqf_h.inputs.FEATURES_VERSION` first):
+"""Regenerate the golden model inputs after a deliberate change of the values (bump
+`otprof.models.sqf_h.inputs.FEATURES_VERSION` first: MAJOR, or MINOR for a small change shown not to need retraining):
 
     uv run python tests/data/make_golden.py
 

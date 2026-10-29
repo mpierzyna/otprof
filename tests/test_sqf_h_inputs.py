@@ -87,11 +87,11 @@ def test_repeated_levels_get_nearest_gradient(canonical):
     np.testing.assert_array_equal(X["S"].isel(bottom_top=0), X["S"].isel(bottom_top=2))
 
 
-def test_w71_bounds_fixed_vs_percentile(canonical):
-    fixed = (-50.0, 50.0)
-    full = make_inputs(canonical, w71_L_bounds=fixed)["lct2_w71f"]
-    single = make_inputs(canonical.isel(time=[0]), w71_L_bounds=fixed)["lct2_w71f"]
-    xr.testing.assert_allclose(single, full.isel(time=[0]))
+def test_inputs_independent_of_the_other_samples(canonical):
+    """A single time step gives the same inputs as within the whole dataset (no statistics over the samples)."""
+    full = make_inputs(canonical)
+    single = make_inputs(canonical.isel(time=[0]))
+    xr.testing.assert_identical(single, full.isel(time=[0]))
 
 
 def test_invalid_input_rejected(canonical):

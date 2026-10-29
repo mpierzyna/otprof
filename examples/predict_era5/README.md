@@ -52,9 +52,6 @@ uncorrected profiles.
 
 ## Good to know
 
-- The surface CT2 input (`lct2_w71f`) clips the Obukhov length to the 2.5 / 97.5 percentiles of the data the inputs
-  are computed from, as in training. For very few time steps or grid points these percentiles are uncertain; fixed bounds
-  are planned.
 - The terrain height input is ERA5's own orography. The training inputs used the WRF terrain of the target column.
 - The model was trained on the Netherlands. How well it transfers to other regions is discussed in the paper
   (arXiv:2604.09346).

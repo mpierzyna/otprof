@@ -43,9 +43,6 @@ give the GFS run and lead time of every time step.
 - The fields are those of the current GFS (v16 and later): all 31 pressure levels, instantaneous surface fluxes,
   friction velocity and PBL height. `otprof.sources.gfs_archive` reads the GFS of earlier years (2015-2020) from the
   NCAR GDEX archive, which lacks some of these fields; see its docstring.
-- The surface CT2 input (`lct2_w71f`) clips the Obukhov length to the 2.5 / 97.5 percentiles of the data the inputs
-  are computed from, as in training. For a few times and locations these percentiles are uncertain; fixed bounds are
-  planned.
 - The terrain height input is GFS's own orography. The training inputs used the WRF terrain of the target column.
 - The model was trained on WRF in the Netherlands with ERA5 at inference; GFS inputs are not part of the paper's
   evaluation (arXiv:2604.09346).
