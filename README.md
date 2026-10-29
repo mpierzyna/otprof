@@ -52,10 +52,11 @@ In short, with the published model:
 ```python
 from otprof.models import sqf_h
 from otprof.predict import load_model, predict
-from otprof.sources import era5
+from otprof.sources import Area, era5
 
+ds = era5.load(["2023-07-01 12:00"], Area(lon_min=3, lon_max=7, lat_min=51, lat_max=53))
 predictor = load_model(sqf_h.HF_REPO_ID, revision=sqf_h.HF_REVISION)
-X = predictor.make_inputs(era5.standardize(ds))   # ds: ERA5 loaded with era5.fetch
+X = predictor.make_inputs(ds)
 y = predict(predictor, X)                         # lcn2, QKE, TSQ, EL_PBL, r0, lsi2
 ```
 
@@ -64,7 +65,7 @@ y = predict(predictor, X)                         # lcn2, QKE, TSQ, EL_PBL, r0, 
 | Module | Contents |
 |---|---|
 | `otprof.schema` | the canonical input dataset: names, units, pressure levels every data source is converted to |
-| `otprof.sources` | data sources: `era5`, `gfs` and `gfs_archive` (download, `standardize`), `wrf` (WRF Cn2 output, `standardize`) |
+| `otprof.sources` | data sources with one interface (`load(times, where)`, `where` an `Area` or `Points`): `era5`, `era5_cds` (bulk downloads), `gfs` (forecasts), `gfs_archive`; `wrf` (WRF Cn2 output, training data) |
 | `otprof.dataset` | building a training dataset: alignment of ERA5 and WRF, targets, Cn2 filter |
 | `otprof.features` | building blocks of model inputs (potential temperature, wind, surface CT2, time features) |
 | `otprof.models` | one subpackage per model (`sqf_h`: its inputs, data processing, network and training module); saving and loading networks (`bundle`) |

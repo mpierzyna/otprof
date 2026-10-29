@@ -1938,6 +1938,7 @@ data = [
     { name = "zarr" },
 ]
 gfs = [
+    { name = "cfgrib" },
     { name = "eccodes" },
     { name = "eccodeslib" },
 ]
@@ -1965,6 +1966,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "cfgrib", marker = "extra == 'data'", specifier = ">=0.9.15" },
+    { name = "cfgrib", marker = "extra == 'gfs'", specifier = ">=0.9.15" },
     { name = "dask", marker = "extra == 'data'", specifier = ">=2024.1" },
     { name = "eccodes", marker = "extra == 'data'", specifier = ">=2.41" },
     { name = "eccodes", marker = "extra == 'gfs'", specifier = ">=2.41" },

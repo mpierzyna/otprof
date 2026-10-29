@@ -1,7 +1,7 @@
 """Build a training dataset for a domain from WRF Cn2 output (otprof-wrf) and ERA5. Needs `otprof[data]`.
 
 Steps, as run by `examples/new_domain/` (each writes NetCDF that can be inspected):
-1. `get_wrf_times` → `otprof.sources.era5.fetch`: download ERA5 for the WRF time steps
+1. `get_wrf_times` → `otprof.sources.era5.fetch`: download ERA5 for the WRF time steps in the area of the domain
 2. `align`: pair each ERA5 grid point with the nearest WRF column and keep the common time steps. Pure selection:
    variables, units and levels stay as delivered.
 3. `make_wrf_targets`: WRF Cn2 profiles and astroclimate parameters (targets); the inputs are the canonical ERA5 and
@@ -50,10 +50,10 @@ def align(
     - `n_workers`: WRF files read in parallel (reading is limited by decompression, one core per file).
 
     Returns ERA5 and WRF on the common dims `(time, [level | bottom_top], loc)` and diagnostics for a report. Nothing
-    is converted: names, units, signs, levels and ERA5's 0..360 longitudes stay as delivered.
+    is converted: names, units, signs and levels stay as delivered.
     """
     era5 = era5.stack(loc=("latitude", "longitude"))
-    # ERA5 (ARCO) longitudes run 0..360, WRF's -180..180: match on wrapped longitudes, keep the original ones
+    # Match on longitudes -180..180 (as WRF; ERA5 files of earlier otprof versions have 0..360), keep the original ones
     era5_lon = ((era5["longitude"] + 180) % 360) - 180
 
     # The WRF grid does not move in time: match on the first file and reuse it for all

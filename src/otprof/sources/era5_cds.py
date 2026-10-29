@@ -1,10 +1,17 @@
-"""ERA5 (pressure levels + surface) from the Copernicus Climate Data Store (CDS) → the ARCO layout of `era5.fetch`.
+"""ERA5 (pressure levels + surface) from the Copernicus Climate Data Store (CDS), for long time series.
 
-- `make_jobs`: CDS requests (GRIB) for ERA5 over an area and a range of months, split to stay within the CDS cost limits
-- `make_block_jobs`: the same for one block of years x months (e.g. one month or one quarter)
-- `retrieve`: submit the requests and download the results, resumable (needs `otprof[data]`: ecmwf-datastores-client)
-- `open_month`: one month of the downloaded GRIB files in ARCO names, units and layout, the input of
-  `era5.standardize` (needs `otprof[data]`: cfgrib, eccodes)
+ARCO-ERA5 (`otprof.sources.era5`) stores one global chunk per time step, so long time series over a small area
+download the whole globe (20 years hourly: about 217 TB). The CDS cuts the area on the server, but works with a queue:
+requests wait and run for hours. Hence two steps:
+
+    era5_cds.download(times, area, root)       # submit, wait, download; resumable (run it again after a stop)
+    X = era5_cds.load(times, where, root)      # any times and `Area` / `Points` within the downloaded data
+
+- `download`: the CDS requests (GRIB) for every day of the months of `times` at their hours of day, over `area`,
+  packed to the CDS cost limits (as few requests as possible), submitted and downloaded to `root`; the plan is kept in
+  `root/jobs.json`, the request ids in `root/requests.json` (needs `otprof[data]`: ecmwf-datastores-client)
+- `fetch`: the downloaded data at `times` in an `Area` or at `Points`, in the ARCO layout of `era5.fetch` (needs
+  `otprof[data]`: cfgrib, eccodes); `standardize` = `era5.standardize`; `load` = `standardize(fetch(...))`
 
 The CDS client reads its URL and API key from `~/.ecmwfdatastoresrc` (or `ECMWF_DATASTORES_URL` / `_KEY`).
 """
@@ -21,7 +28,9 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-from otprof.sources import era5
+from otprof.sources import Area, Where, era5, select
+
+standardize = era5.standardize
 
 PL_DATASET = "reanalysis-era5-pressure-levels"
 SL_DATASET = "reanalysis-era5-single-levels"
@@ -69,27 +78,79 @@ SL_REQUEST = {"geopotential_at_surface": "geopotential"}  # ARCO name → CDS re
 COST_LIMIT = {PL_DATASET: 60_000, SL_DATASET: 121_000}
 
 
-def make_jobs(
-    start: str,
-    end: str,
+def download(
+    times,
+    area: Area,
+    root: str | pathlib.Path,
     *,
-    lon_min: float,
-    lon_max: float,
-    lat_min: float,
-    lat_max: float,
     variables: list[str] = era5.VARIABLES,
-    hours: Sequence[int] = range(24),
+    max_active: int = 8,
+    poll: float = 30,
+) -> None:
+    """Download ERA5 over `area` for every day of the months of `times`, at their hours of day (UTC), to `root`.
+
+    The requests (`_make_jobs`) are added to the plan in `root/jobs.json`; a file of the plan with another request
+    (e.g. another area) raises: one `root` per area and variables. Files that exist are skipped, so `download` resumes
+    after a stop (`_retrieve`).
+    """
+    root = pathlib.Path(root)
+    times = pd.DatetimeIndex(times)
+    jobs = _make_jobs(set(times.to_period("M")), area, variables, sorted(set(times.hour)))
+    jobs = json.loads(json.dumps(jobs))  # as stored: lists
+    plan_file = root / "jobs.json"
+    plan = json.loads(plan_file.read_text()) if plan_file.exists() else {}
+    if conflict := [n for n in jobs if n in plan and plan[n] != jobs[n]]:
+        raise ValueError(f"{root} holds other requests for {conflict[:3]}: use one root per area and variables")
+    root.mkdir(parents=True, exist_ok=True)
+    plan_file.write_text(json.dumps(plan | jobs, indent=1))
+    _retrieve(jobs, root, max_active=max_active, poll=poll)
+
+
+def fetch(times, where: Where, root: str | pathlib.Path) -> xr.Dataset:
+    """ERA5 at `times` in an `Area` or at `Points` (`otprof.sources`) from the files `download` wrote to `root`, in
+    ARCO names, units and layout (as `era5.fetch`). The forecast fields of the CDS (accumulations, means, friction
+    velocity) are put on their validity times."""
+    root = pathlib.Path(root)
+    if not (root / "jobs.json").exists():
+        raise ValueError(f"{root}: no jobs.json, download first")
+    jobs = json.loads((root / "jobs.json").read_text())
+    times = pd.DatetimeIndex(times)
+    parts = []
+    for month in sorted(set(times.to_period("M"))):
+        requests = {
+            root / name: (dataset, request)
+            for name, (dataset, request) in jobs.items()
+            if str(month.year) in request["year"] and f"{month.month:02d}" in request["month"]
+        }
+        if not requests:
+            raise ValueError(f"{month} was not downloaded to {root}")
+        if missing := [f for f in requests if not f.exists()]:
+            raise ValueError(f"{len(missing)} files of {month} missing in {root} (e.g. {missing[0]}): download again")
+        in_month = times[times.to_period("M") == month]
+        for path, (_, request) in requests.items():
+            if lacking := set(in_month.hour) - {int(t[:2]) for t in request["time"]}:
+                raise ValueError(f"{path}: hours {sorted(lacking)} of {month} were not downloaded")
+        parts.append(open_grib({path: dataset for path, (dataset, _) in requests.items()}, in_month))
+    ds = xr.concat(parts, "time") if len(parts) > 1 else parts[0]
+    return select(ds, where, lat="latitude", lon="longitude")
+
+
+def load(times, where: Where, root: str | pathlib.Path) -> xr.Dataset:
+    """ERA5 at `times` in an `Area` or at `Points` from `root` as canonical inputs: `standardize(fetch(...))`."""
+    return standardize(fetch(times, where, root).load())
+
+
+def _make_jobs(
+    months: set[pd.Period], area: Area, variables: list[str], hours: Sequence[int]
 ) -> dict[str, tuple[str, dict]]:
-    """CDS requests for `hours` (UTC) of every day of the months `start` .. `end` (e.g. "2005-01", "2026-06").
+    """CDS requests for `hours` (UTC) of every day of `months`.
 
     Returns {file name: (dataset, request)}. A CDS request is the cross product of its variables, levels, years,
     months, days and hours; each dataset gets the block of variables x years x months (`_choose_block`) that fills the cost
     limit best, i.e. the fewest requests: e.g. hourly 1 pressure-level variable x 2 months (55 056 of 60 000 fields)
     and 18 surface variables x 3 years x 3 months (120 528 of 121 000). Files: `<pl|sl>/<years>_<months>_<i>.grib`,
-    `i` the variable group. The area takes ARCO longitudes (0..360), as `era5.fetch`.
+    `i` the variable group.
     """
-    area = {"lon_min": lon_min, "lon_max": lon_max, "lat_min": lat_min, "lat_max": lat_max}
-    months = set(pd.period_range(start, end, freq="M"))
     years = sorted({m.year for m in months})
     out = {}
     for kind, dataset, names, extra in _split_by_dataset(variables):
@@ -109,34 +170,26 @@ def make_jobs(
                         continue
                     span = f"{ys[0]}" if len(ys) == 1 else f"{ys[0]}-{ys[-1]}"
                     span += f"_{ms[0]:02d}" if len(ms) == 1 else f"_{ms[0]:02d}-{ms[-1]:02d}"
-                    out |= make_block_jobs(span, ys, ms, **area, variables=dataset_vars, hours=hours)
+                    out |= _make_block_jobs(span, ys, ms, area, dataset_vars, hours)
     return out
 
 
-def make_block_jobs(
-    name: str,
-    years: Sequence[int],
-    months: Sequence[int],
-    *,
-    lon_min: float,
-    lon_max: float,
-    lat_min: float,
-    lat_max: float,
-    variables: list[str] = era5.VARIABLES,
-    hours: Sequence[int] = range(24),
+def _make_block_jobs(
+    name: str, years: Sequence[int], months: Sequence[int], area: Area, variables: list[str], hours: Sequence[int]
 ) -> dict[str, tuple[str, dict]]:
     """CDS requests for `hours` (UTC) of every day of the block `years` x `months` (e.g. [2017], [1, 2, 3]).
 
     Per dataset, the variables are packed into as few requests as the cost limit allows, e.g. hourly for one month:
     4 pressure-level requests (2, 2, 2, 1 of the 7 variables) and 1 surface request. Files: `<pl|sl>/<name>_<i>.grib`,
-    `i` the variable group. Returns {file name: (dataset, request)}, as `make_jobs`.
+    `i` the variable group. Returns {file name: (dataset, request)}, as `_make_jobs`.
     """
-    common = _make_common_keys(lon_min=lon_min, lon_max=lon_max, lat_min=lat_min, lat_max=lat_max, hours=hours)
+    common = _make_common_keys(area, hours)
     out = {}
     for kind, dataset, names, extra in _split_by_dataset(variables):
         n_levels = len(extra.get("pressure_level", [0]))
         nv = COST_LIMIT[dataset] // (n_levels * 31 * len(hours) * len(years) * len(months))
-        assert nv >= 1, f"one variable of the block {name} exceeds the CDS limit of {COST_LIMIT[dataset]}"
+        if nv < 1:
+            raise ValueError(f"one variable of the block {name} exceeds the CDS limit of {COST_LIMIT[dataset]}")
         for i in range(0, len(names), nv):
             request = {
                 **common,
@@ -149,14 +202,13 @@ def make_block_jobs(
     return out
 
 
-def _make_common_keys(*, lon_min: float, lon_max: float, lat_min: float, lat_max: float, hours: Sequence[int]) -> dict:
-    """Request keys shared by all requests: every day, `hours`, the area (ARCO longitudes 0..360 → -180..180), GRIB."""
-    lon = lambda x: ((x + 180) % 360) - 180
+def _make_common_keys(area: Area, hours: Sequence[int]) -> dict:
+    """Request keys shared by all requests: every day, `hours`, the area, GRIB."""
     return {
         "product_type": ["reanalysis"],
         "day": [f"{d:02d}" for d in range(1, 32)],  # days a month does not have are ignored
         "time": [f"{h:02d}:00" for h in hours],
-        "area": [lat_max, lon(lon_min), lat_min, lon(lon_max)],  # N, W, S, E
+        "area": [area.lat_max, area.lon_min, area.lat_min, area.lon_max],  # N, W, S, E
         "data_format": "grib",
         "download_format": "unarchived",
     }
@@ -167,7 +219,8 @@ def _split_by_dataset(variables: list[str]) -> list[tuple[str, str, list[str], d
     pl = [v for v in variables if v in PL_NAMES.values()]
     sl = [v for v in variables if v in SL_NAMES.values()]
     unknown = set(variables) - set(pl) - set(sl)
-    assert not unknown, f"no CDS name for {sorted(unknown)}: add them to `PL_NAMES` / `SL_NAMES`"
+    if unknown:
+        raise ValueError(f"no CDS name for {sorted(unknown)}: add them to `PL_NAMES` / `SL_NAMES`")
     out = [
         ("pl", PL_DATASET, pl, {"pressure_level": [str(p) for p in LEVELS]}),
         ("sl", SL_DATASET, [SL_REQUEST.get(v, v) for v in sl], {}),
@@ -187,12 +240,13 @@ def _choose_block(n_vars: int, fields_per_var_month: int, limit: int, n_years: i
                 key = (n, ny, -nv)  # ties: fewer years per request (shorter files), then fewer variable groups
                 if best is None or key < best[0]:
                     best = (key, (nv, ny, nm))
-    assert best, f"one variable-month ({fields_per_var_month} fields) exceeds the CDS limit of {limit}"
+    if best is None:
+        raise ValueError(f"one variable-month ({fields_per_var_month} fields) exceeds the CDS limit of {limit}")
     return best[1]
 
 
-def retrieve(jobs: dict[str, tuple[str, dict]], root: pathlib.Path, *, max_active: int = 8, poll: float = 30) -> None:
-    """Submit the `jobs` (from `make_jobs`) to the CDS and download each result to `root / <file name>`.
+def _retrieve(jobs: dict[str, tuple[str, dict]], root: pathlib.Path, *, max_active: int = 8, poll: float = 30) -> None:
+    """Submit the `jobs` (from `_make_jobs`) to the CDS and download each result to `root / <file name>`.
 
     At most `max_active` requests are queued or running at a time. Files that exist are skipped. The request ids are
     kept in `root / requests.json`, so a restart downloads the requests already submitted instead of queueing them
@@ -240,7 +294,8 @@ def retrieve(jobs: dict[str, tuple[str, dict]], root: pathlib.Path, *, max_activ
                 counts[status] += 1
             else:
                 failures[name] = failures.get(name, 0) + 1
-                assert failures[name] <= 3, f"{name}: request failed 3 times, last status `{status}`"
+                if failures[name] > 3:
+                    raise RuntimeError(f"{name}: request failed 3 times, last status `{status}`")
                 bar.write(f"{name}: request {ids[name]} {status}, submitting again")
                 del ids[name]
         for name in [n for n in todo if n not in ids][: max(max_active - sum(counts.values()), 0)]:
@@ -254,29 +309,9 @@ def retrieve(jobs: dict[str, tuple[str, dict]], root: pathlib.Path, *, max_activ
     bar.close()
 
 
-def open_month(root: pathlib.Path, jobs: dict[str, tuple[str, dict]], month: str) -> xr.Dataset:
-    """ERA5 of `month` (e.g. "2017-01") from the GRIB files of `jobs` in `root`, in the ARCO layout of `era5.fetch`.
-
-    ARCO names and units, dims `(time, level, latitude, longitude)`, levels ascending, latitude descending, longitude
-    0..360; the times are the hours of the requests. The surface fields CDS delivers as forecasts (`time` x `step`:
-    accumulations, means, friction velocity) are put on their validity times.
-    """
-    m = pd.Period(month, freq="M")
-    requests = {
-        root / name: (dataset, request)
-        for name, (dataset, request) in jobs.items()
-        if str(m.year) in request["year"] and f"{m.month:02d}" in request["month"]
-    }
-    assert requests, f"no files for {month} in the jobs"
-    (hours, *other) = {tuple(request["time"]) for _, request in requests.values()}
-    assert not other, f"the requests for {month} differ in their hours"
-    days = pd.date_range(m.start_time, m.end_time.floor("D"), freq="D")
-    times = pd.DatetimeIndex([d + pd.Timedelta(f"{t}:00") for d in days for t in hours])
-    return open_grib({path: dataset for path, (dataset, _) in requests.items()}, times)
-
-
 def open_grib(files: dict[pathlib.Path, str], times) -> xr.Dataset:
-    """GRIB files from the CDS ({path: dataset}, requests as in `make_jobs`) at `times`, in the ARCO layout."""
+    """GRIB files from the CDS ({path: dataset}, requests as in `_make_jobs`) at `times`, in the ARCO layout: ARCO
+    names and units, dims (time, level, latitude, longitude), levels ascending, latitude descending, longitude 0..360."""
     parts = []
     for path, dataset in files.items():
         names = PL_NAMES if dataset == PL_DATASET else SL_NAMES

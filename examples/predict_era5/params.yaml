@@ -5,7 +5,7 @@ start: "2023-07-01 00:00"
 end: "2023-07-01 18:00"
 freq: 6h
 
-# Area (ERA5 grid, 0.25 deg). Longitudes run 0..360 (e.g. 350 for 10 deg W); latitude max > min
+# Area (ERA5 grid, 0.25 deg) in degrees: longitudes -180..180 (or 0..360), latitude max > min
 area: {lon_min: 3, lon_max: 7, lat_min: 51, lat_max: 53}
 
 # Model: Hugging Face repo id or a local model directory. null = the published SQF-H at the revision of this otprof

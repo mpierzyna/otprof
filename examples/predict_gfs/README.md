@@ -20,8 +20,11 @@ Edit `params.yaml`:
   profiles, about 13 km for the surface fluxes).
 - `model`: leave at `null` for the published model, or give a local model directory.
 
-GFS comes from the NOAA archive on AWS (no account needed). Only the needed GRIB messages are downloaded, a few MB per
-lead time.
+GFS comes from the NOAA archive on AWS (no account needed). Only the needed GRIB messages are downloaded. Each is a
+global field, so a lead time downloads about 120 MB, whatever the number of locations.
+
+For an area instead of locations, use `Area(lon_min=2, lon_max=9, lat_min=49, lat_max=55)` instead of `Points`: the
+0.25 deg grid points inside it, on dims (time, lat, lon) like ERA5 (same download size).
 
 ## Run
 
@@ -50,15 +53,16 @@ give the GFS run and lead time of every time step.
 ## The same in Python
 
 ```python
-import xarray as xr
+import pandas as pd
 
 from otprof.models import sqf_h
 from otprof.predict import load_model, predict
-from otprof.sources import gfs
+from otprof.sources import Points, gfs
 
-lat, lon = [51.97, 28.76], [4.93, -17.89]
-ds = xr.concat([gfs.fetch("2025-06-01 00:00", lead, lat, lon) for lead in [3, 6, 9, 12]], "time")
+cycle = pd.Timestamp("2025-06-01 00:00")   # one forecast run; all times come from it
+times = pd.date_range(cycle + pd.Timedelta(hours=3), periods=4, freq="3h")
+ds = gfs.load(cycle, times, Points.from_dict({"cabauw": (51.97, 4.93), "la_palma": (28.76, -17.89)}))
 predictor = load_model(sqf_h.HF_REPO_ID, revision=sqf_h.HF_REVISION)
-X = predictor.make_inputs(gfs.standardize(ds))   # the model computes its own inputs
+X = predictor.make_inputs(ds)   # the model computes its own inputs
 y = predict(predictor, X)
 ```

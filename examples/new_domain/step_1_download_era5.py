@@ -5,7 +5,7 @@ download again.
 """
 
 from otprof import dataset
-from otprof.sources import era5
+from otprof.sources import Area, era5
 
 import domain
 
@@ -20,11 +20,8 @@ if __name__ == "__main__":
     times = dataset.get_wrf_times(wrf_files)
     print(f"{len(wrf_files)} WRF files, {len(times)} time steps")
 
-    ds, sizes = era5.fetch(times, **params["area"])
+    ds = era5.fetch(times, Area(**params["area"]))
     print(ds)
-    print(
-        f"{sizes['download'] / 1e9:.1f} GB to download ({sizes['n_chunks']} chunks), "
-        f"{sizes['on_disk'] / 1e9:.1f} GB on disk"
-    )
+    print(f"{era5.get_download_size(times)['download'] / 1e9:.1f} GB to download, {ds.nbytes / 1e9:.1f} GB on disk")
     ds.to_netcdf(out_file)
     print(f"Wrote {out_file}")

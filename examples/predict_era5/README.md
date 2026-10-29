@@ -15,7 +15,7 @@ inspect (e.g. with `xarray` or `ncview`) before running the next one.
 Edit `params.yaml`:
 
 - `start`, `end`, `freq`: the ERA5 time steps (UTC), e.g. one day every 6 hours.
-- `area`: the region on the ERA5 grid (0.25 deg). Longitudes run from 0 to 360, so 10 deg W is 350.
+- `area`: the region on the ERA5 grid (0.25 deg), in degrees; 10 deg W is -10 (or 350).
 - `model`: leave at `null` for the published model, or give a local model directory.
 
 ERA5 is downloaded from the public ARCO-ERA5 copy on Google Cloud (no account needed). It stores each time step for
@@ -66,11 +66,11 @@ import pandas as pd
 
 from otprof.models import sqf_h
 from otprof.predict import load_model, predict
-from otprof.sources import era5
+from otprof.sources import Area, Points, era5
 
 times = pd.date_range("2023-07-01 00:00", "2023-07-01 18:00", freq="6h")
-ds, sizes = era5.fetch(times, lon_min=3, lon_max=7, lat_min=51, lat_max=53)   # lazy; downloads on .load()
+ds = era5.load(times, Area(lon_min=3, lon_max=7, lat_min=51, lat_max=53))   # or Points.from_dict({"cabauw": (51.97, 4.93)})
 predictor = load_model(sqf_h.HF_REPO_ID, revision=sqf_h.HF_REVISION)
-X = predictor.make_inputs(era5.standardize(ds.load()))   # the model computes its own inputs
+X = predictor.make_inputs(ds)   # the model computes its own inputs
 y = predict(predictor, X)
 ```

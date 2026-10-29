@@ -3,7 +3,7 @@ domains:
   nl:
     # Folder with the WRF Cn2 output of otprof-wrf (searched recursively for wrfout_aux_*_cn2.nc)
     wrf_output: ../../../otprof-wrf/domains/nl
-    # ERA5 area to download (ARCO longitudes run 0..360; latitude max > min)
+    # ERA5 area to download (degrees; longitudes -180..180 or 0..360, not across 180 deg)
     area: {lon_min: 2, lon_max: 9, lat_min: 49, lat_max: 55}
     crop: 3         # outer WRF cells dropped on each side (edge effects)
     dist_th: 0.02   # ERA5 point kept if the nearest WRF column is closer than this [deg]

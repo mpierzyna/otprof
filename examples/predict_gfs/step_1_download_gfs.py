@@ -1,15 +1,16 @@
 """Step 1: download the GFS forecast of `params.yaml` at the locations → `data/gfs.nc`.
 
-GFS comes from the NOAA archive on AWS (no account needed). Only the needed fields are downloaded (a few MB per lead
-time), from the grid points nearest to the locations. Delete the file to download again.
+GFS comes from the NOAA archive on AWS (no account needed). Only the needed fields are downloaded (global fields,
+about 120 MB per lead time), and the values at the grid points nearest to the locations are kept. Delete the file to
+download again.
 """
 
 import pathlib
 
-import xarray as xr
+import pandas as pd
 import yaml
 
-from otprof.sources import gfs
+from otprof.sources import Points, gfs
 
 HERE = pathlib.Path(__file__).parent
 
@@ -20,12 +21,8 @@ if __name__ == "__main__":
         raise SystemExit(f"{out_file} exists; delete it to download again.")
     out_file.parent.mkdir(exist_ok=True)
 
-    names = list(params["locations"])
-    lat, lon = zip(*params["locations"].values())
-    leads = []
-    for lead in params["leads"]:
-        leads.append(gfs.fetch(params["cycle"], lead, lat, lon))
-        print(f"+{lead} h downloaded")
-    ds = xr.concat(leads, "time").assign_coords(name=("loc", names))
+    cycle = pd.Timestamp(params["cycle"])
+    times = [cycle + pd.Timedelta(hours=lead) for lead in params["leads"]]
+    ds = gfs.fetch(cycle, times, Points.from_dict(params["locations"]))
     ds.to_netcdf(out_file)
     print(f"Wrote {out_file}")

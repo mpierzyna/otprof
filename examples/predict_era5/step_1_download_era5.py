@@ -10,7 +10,7 @@ import pathlib
 import pandas as pd
 import yaml
 
-from otprof.sources import era5
+from otprof.sources import Area, era5
 
 HERE = pathlib.Path(__file__).parent
 
@@ -22,8 +22,8 @@ if __name__ == "__main__":
     out_file.parent.mkdir(exist_ok=True)
 
     times = pd.date_range(params["start"], params["end"], freq=params["freq"])
-    ds, sizes = era5.fetch(times, **params["area"])
+    ds = era5.fetch(times, Area(**params["area"]))
     print(f"{len(times)} time steps, {ds.sizes['latitude']} x {ds.sizes['longitude']} grid points")
-    print(f"{sizes['download'] / 1e9:.1f} GB to download, {sizes['on_disk'] / 1e6:.1f} MB on disk")
+    print(f"{era5.get_download_size(times)['download'] / 1e9:.1f} GB to download, {ds.nbytes / 1e6:.1f} MB on disk")
     ds.to_netcdf(out_file)
     print(f"Wrote {out_file}")

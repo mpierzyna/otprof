@@ -3,7 +3,9 @@ import pandas as pd
 import xarray as xr
 
 from otprof import schema
-from otprof.sources import era5
+import pytest
+
+from otprof.sources import Area, Points, era5
 
 ARCO_LEVELS = [1, 2, 3, 5, 7, 10, 20, 30, 50, 70, 100, 125, 150, 175, 200, 225, 250, 300, 350, 400, 450, 500, 550,
                600, 650, 700, 750, 775, 800, 825, 850, 875, 900, 925, 950, 975, 1000]  # fmt: skip
@@ -81,3 +83,22 @@ def test_get_chunks_touched(tmp_path):
     full = xr.open_zarr(tmp_path / "s.zarr", chunks=None)
     subset = full.sel(time=[0, 5, 9], lat=slice(5, 12), lon=slice(0, 9))  # time chunks 0, 1, 2; lat 0, 1; lon 0
     assert era5.get_chunks_touched(subset, full) == {"a": (6, 6 * 4 * 10 * 10 * 4)}
+
+
+@pytest.fixture
+def store(monkeypatch):
+    """`fetch` reads a local stand-in of the ARCO store (2 x 2 points, longitudes 4 and 350 E)."""
+    arco = make_arco()
+    monkeypatch.setattr(era5, "open_store", lambda times, variables=era5.VARIABLES: arco.sel(time=times))
+
+
+def test_fetch_area_and_points(store):
+    times = ["2017-01-01 00:00"]
+    area = era5.fetch(times, Area(lon_min=-11, lon_max=5, lat_min=51, lat_max=53))
+    assert area["longitude"].values.tolist() == [-10.0, 4.0]  # west to east, -180..180
+    X = era5.load(times, Points.from_dict({"a": (51.8, 4.1)}))
+    assert X["z"].dims == ("time", "loc", "bottom_top") and X["name"].values.tolist() == ["a"]
+    assert X["lat"].values.tolist() == [51.8] and X["lon"].values.tolist() == [4.1]
+    assert era5.load(times, Area(lon_min=-11, lon_max=5, lat_min=51, lat_max=53))["z"].dims == (
+        "time", "lat", "lon", "bottom_top"
+    )  # fmt: skip

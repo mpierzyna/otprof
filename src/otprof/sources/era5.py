@@ -1,16 +1,20 @@
 """ERA5 (pressure levels + surface) from the ARCO-ERA5 zarr store → canonical inputs (`otprof.schema`).
 
-- `fetch`: open ERA5 for given times and area, with its download size (needs `otprof[data]`: gcsfs, zarr)
-- `standardize`: ERA5 in ARCO names and units → canonical inputs
+- `fetch(times, where)`: ERA5 at the times in an `Area` or at `Points`, in ARCO names and units, lazily (needs
+  `otprof[data]`: gcsfs, zarr)
+- `standardize(raw)`: → canonical inputs; `load(times, where)` = `standardize(fetch(...))`
+- `get_download_size(times)`: what a fetch downloads (the store keeps each time step of the globe in one piece)
 """
 
 from __future__ import annotations
 
 import numpy as np
+import pandas as pd
 import xarray as xr
 
 from otprof import schema
 from otprof.physics.constants import G
+from otprof.sources import Where, select, to_180
 
 # ARCO-ERA5 names → canonical (and short research) names. Fields not listed keep their ARCO name.
 RENAME = {
@@ -73,32 +77,29 @@ VARIABLES = [
 ]
 
 
-def fetch(
-    times,
-    *,
-    lon_min: float,
-    lon_max: float,
-    lat_min: float,
-    lat_max: float,
-    variables: list[str] = VARIABLES,
-) -> tuple[xr.Dataset, dict[str, int]]:
-    """ERA5 at `times` for the area (ARCO longitudes run 0..360), opened lazily from the ARCO-ERA5 store.
-
-    Returns the dataset and its sizes [bytes]: `on_disk` (the selection itself) and `download` (the storage chunks
-    the selection touches, uncompressed, in `n_chunks` chunks). Nothing is downloaded until the values are used
-    (e.g. `.to_netcdf(...)`). The store has no spatial chunks, so every time step is downloaded for the whole globe
-    and cut to the area afterwards: `download` is much larger than `on_disk`.
-    """
+def open_store(times, variables: list[str] = VARIABLES) -> xr.Dataset:
+    """The ARCO-ERA5 store at `times`, lazily (global; needs `otprof[data]`: gcsfs, zarr)."""
     full = xr.open_zarr(ARCO_URL, chunks=None, storage_options=dict(token="anon"))
-    # ERA5 latitude is stored in descending order
-    ds = full.sel(time=times)[variables].sel(longitude=slice(lon_min, lon_max), latitude=slice(lat_max, lat_min))
-    touched = get_chunks_touched(ds, full)
-    sizes = {
-        "on_disk": ds.nbytes,
-        "download": sum(nbytes for _, nbytes in touched.values()),
-        "n_chunks": sum(n for n, _ in touched.values()),
-    }
-    return ds, sizes
+    return full.sel(time=pd.DatetimeIndex(times))[variables]
+
+
+def fetch(times, where: Where, variables: list[str] = VARIABLES) -> xr.Dataset:
+    """ERA5 at `times` in an `Area` or at `Points` (`otprof.sources`), in ARCO names and units, opened lazily: nothing
+    is downloaded until the values are used (`.load()`, `.to_netcdf(...)`). The store keeps every time step of the
+    whole globe in one piece, so each time step downloads about 1 GB whatever the area (`get_download_size`)."""
+    return select(open_store(times, variables), where, lat="latitude", lon="longitude")
+
+
+def load(times, where: Where, variables: list[str] = VARIABLES) -> xr.Dataset:
+    """ERA5 at `times` in an `Area` or at `Points` as canonical inputs: `standardize(fetch(...))`, downloaded."""
+    return standardize(fetch(times, where, variables).load())
+
+
+def get_download_size(times, variables: list[str] = VARIABLES) -> dict[str, int]:
+    """What `fetch` downloads for `times`, whatever the area: the storage chunks it touches (uncompressed, global)."""
+    full = xr.open_zarr(ARCO_URL, chunks=None, storage_options=dict(token="anon"))
+    touched = get_chunks_touched(open_store(times, variables), full)
+    return {"download": sum(nbytes for _, nbytes in touched.values()), "n_chunks": sum(n for n, _ in touched.values())}
 
 
 def get_chunks_touched(subset: xr.Dataset, full: xr.Dataset) -> dict[str, tuple[int, int]]:
@@ -139,7 +140,7 @@ def standardize(ds: xr.Dataset) -> xr.Dataset:
       [hPa] and as `p` [Pa])
     """
     ds = ds.rename({k: v for k, v in RENAME.items() if k in ds.variables})
-    ds = ds.assign_coords(lon=(((ds["lon"] + 180) % 360) - 180))
+    ds = ds.assign_coords(lon=(ds["lon"].dims, to_180(ds["lon"].values)))
 
     # Fluxes to upward positive (WRF convention); lh accumulated over 1 h
     ds["hfx"] = -ds["hfx"]
@@ -154,6 +155,7 @@ def standardize(ds: xr.Dataset) -> xr.Dataset:
     ds = ds.sel(level=list(schema.P_LEVELS_HPA))
     ds["p"] = (ds["level"] * 100).astype(int)
     ds = ds.rename(level="p_level").swap_dims(p_level="bottom_top")
+    ds = ds.transpose(*[d for d in ds.dims if d != "bottom_top"], "bottom_top")
 
     ds = schema.set_attrs(ds)
     return schema.validate(ds, grid="pressure")
