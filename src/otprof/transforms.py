@@ -89,7 +89,9 @@ class Transforms:
             if v in ds:
                 logger.info(f"{'Inverting' if inverse else 'Applying'} transformation for variable '{v}'")
                 fn = self.transforms[name][1 if inverse else 0]
-                ds[v] = fn(ds[v], **params)
+                # Assign the bare variable: assigning a DataArray stacked to a MultiIndex makes xarray drop its level
+                # coords individually, which is deprecated (FutureWarning). The coords are already in `ds`.
+                ds[v] = fn(ds[v], **params).variable
         return ds
 
     def transform(self, ds: xr.Dataset) -> xr.Dataset:
@@ -217,7 +219,8 @@ class DatasetScaler:
         return self
 
     def transform(self, ds: xr.Dataset) -> xr.Dataset:
-        ds_scaled = xr.Dataset()
+        # Collected first and built at once: assigning DataArrays stacked to a MultiIndex one by one is deprecated
+        ds_scaled = {}
         for v in ds:
             if v in self.config:
                 tf_fn = self.get_tf_fn(v)
@@ -226,10 +229,10 @@ class DatasetScaler:
                 if self.remainder == "passthrough":
                     ds_scaled[v] = ds[v]
 
-        return ds_scaled
+        return xr.Dataset(ds_scaled)
 
     def inverse_transform(self, ds: xr.Dataset) -> xr.Dataset:
-        ds_unscaled = xr.Dataset()
+        ds_unscaled = {}  # see `transform`
         for v in ds:
             if v in self.config:
                 da = ds[v]
@@ -248,7 +251,7 @@ class DatasetScaler:
                 if self.remainder == "passthrough":
                     ds_unscaled[v] = ds[v]
 
-        return ds_unscaled
+        return xr.Dataset(ds_unscaled)
 
     def get_tf_fn(self, v: str, mode: Literal["xr", "torch"] = "xr") -> Callable[[T], T]:
         """Get transform function for variable v."""

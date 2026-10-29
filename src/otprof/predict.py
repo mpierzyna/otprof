@@ -215,7 +215,7 @@ def predict(
     ds_y = predictor.pipeline.backward_y(ds_y, post=oqm)
     ds_y["z_agl"] = (("sample", "bottom_top"), z_q)
     if "lcn2" in ds_y:
-        ds_y = ds_y.assign(get_integrated_params(ds_y["lcn2"], ds_y["z_agl"]))
+        ds_y = ds_y.merge(get_integrated_params(ds_y["lcn2"], ds_y["z_agl"]))
     ds_y = ds_y.assign_attrs(otprof_oqm=int(oqm and bool(predictor.pipeline.post_y)))
     if dims == ["sample"]:
         return ds_y
