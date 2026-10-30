@@ -25,6 +25,7 @@ import concurrent.futures
 import pathlib
 import tempfile
 import time
+import urllib.error
 import urllib.request
 import warnings
 
@@ -154,6 +155,25 @@ def get_url(cycle: pd.Timestamp, lead: int, file: str) -> str:
     """URL of a GFS file (`pgrb2`, `pgrb2b` or `sflux`) of `cycle` at lead time `lead` [h]."""
     base = f"{AWS}/gfs.{cycle:%Y%m%d}/{cycle:%H}/atmos/gfs.t{cycle:%H}z"
     return f"{base}.sfluxgrbf{lead:03d}.grib2" if file == "sflux" else f"{base}.{file}.0p25.f{lead:03d}"
+
+
+def is_cycle_available(cycle: str | pd.Timestamp, last_lead: int = 384) -> bool:
+    """Whether the run `cycle` is on AWS up to lead time `last_lead` [h] (default: the whole run): the `.idx`
+    inventories of all files `fetch` needs at `last_lead` exist. NCEP uploads the lead times in order, about 3.5-5 h
+    after the cycle time, so a run complete up to `last_lead` can be fetched at all earlier lead times."""
+    cycle = pd.Timestamp(cycle)
+    return all(url_exists(get_url(cycle, last_lead, file) + ".idx") for file in ["pgrb2", "pgrb2b", "sflux"])
+
+
+def url_exists(url: str) -> bool:
+    """Whether `url` exists (HEAD request); other errors than a missing file raise."""
+    try:
+        urllib.request.urlopen(urllib.request.Request(url, method="HEAD"), timeout=30).close()
+    except urllib.error.HTTPError as e:
+        if e.code in (403, 404):  # S3 answers 403 for missing keys of a bucket without public listing
+            return False
+        raise
+    return True
 
 
 def get_bytes(url: str, byte_range: str | None = None, attempts: int = 5) -> bytes:

@@ -105,6 +105,19 @@ def test_fetch_missing_field(served):
         gfs.fetch(CYCLE, TIMES, POINTS)
 
 
+@pytest.mark.parametrize("missing, available", [(None, True), ("sflux", False), ("pgrb2b", False)])
+def test_is_cycle_available(monkeypatch, missing, available):
+    asked = []
+
+    def url_exists(url):
+        asked.append(url)
+        return not (missing and f".{missing}" in url)
+
+    monkeypatch.setattr(gfs, "url_exists", url_exists)
+    assert gfs.is_cycle_available(CYCLE, last_lead=120) is available
+    assert all(url.endswith("f120.idx") or url.endswith("f120.grib2.idx") for url in asked)
+
+
 def test_fetch_times_after_the_cycle():
     with pytest.raises(ValueError, match="after the cycle"):
         gfs.fetch(CYCLE, [CYCLE - pd.Timedelta(hours=3)], POINTS)
