@@ -7,9 +7,11 @@ requests wait and run for hours. Hence two steps:
     era5_cds.download(times, area, root)       # submit, wait, download; resumable (run it again after a stop)
     X = era5_cds.load(times, where, root)      # any times and `Area` / `Points` within the downloaded data
 
-- `download`: the CDS requests (GRIB) for every day of the months of `times` at their hours of day, over `area`,
-  packed to the CDS cost limits (as few requests as possible), submitted and downloaded to `root`; the plan is kept in
-  `root/jobs.json`, the request ids in `root/requests.json` (needs `otprof[data]`: ecmwf-datastores-client)
+- `make_jobs`: the CDS requests (GRIB) for every day of the months of `times` at their hours of day, over `area`,
+  packed to the CDS cost limits (as few requests as possible). `times` is one time range or a list of blocks
+  (`Times`): each block gets its own requests, in block order, e.g. to download a sample of the months first
+- `download`: `make_jobs`, submitted and downloaded to `root`; the plan is kept in `root/jobs.json`, the request ids
+  in `root/requests.json` (needs `otprof[data]`: ecmwf-datastores-client)
 - `fetch`: the downloaded data at `times` in an `Area` or at `Points`, in the ARCO layout of `era5.fetch` (needs
   `otprof[data]`: cfgrib, eccodes); `standardize` = `era5.standardize`; `load` = `standardize(fetch(...))`
 
@@ -19,10 +21,12 @@ The CDS client reads its URL and API key from `~/.ecmwfdatastoresrc` (or `ECMWF_
 from __future__ import annotations
 
 import json
+import os
 import pathlib
 import time
 import warnings
 from collections.abc import Sequence
+from typing import NamedTuple, NotRequired, TypedDict
 
 import numpy as np
 import pandas as pd
@@ -78,128 +82,180 @@ SL_REQUEST = {"geopotential_at_surface": "geopotential"}  # ARCO name → CDS re
 COST_LIMIT = {PL_DATASET: 60_000, SL_DATASET: 121_000}
 
 
+class Request(TypedDict):
+    """One CDS request: the cross product of its lists."""
+
+    product_type: list[str]
+    variable: list[str]  # CDS names
+    year: list[str]
+    month: list[str]
+    day: list[str]  # always "01" .. "31"; days a month does not have are ignored
+    time: list[str]  # "HH:00", the hours of day of the block
+    area: list[float]  # N, W, S, E
+    data_format: str
+    download_format: str
+    pressure_level: NotRequired[list[str]]
+
+
+class Job(NamedTuple):
+    dataset: str  # `PL_DATASET` or `SL_DATASET`
+    request: Request
+
+
+Jobs = dict[str, Job]  # file name under `root` → job; the plan in `root/jobs.json`
+Times = pd.DatetimeIndex | Sequence[pd.DatetimeIndex]  # one time range, or blocks in download order
+
+
+def make_jobs(times: Times, area: Area, *, variables: Sequence[str] = era5.VARIABLES) -> Jobs:
+    """The CDS requests for every day of the months of `times`, at their hours of day (UTC), over `area`.
+
+    `times` is one `DatetimeIndex` or a list of them (blocks): each block gets its own requests (none spans two
+    blocks), at the hours of day of that block, in block order. A CDS request is the cross product of its variables,
+    levels, years, months, days and hours; each dataset gets the grouping of years x months (`_choose_groups`) with
+    the fewest requests, e.g. hourly 1 pressure-level variable x 2 months (55 056 of 60 000 fields) and 9 surface
+    variables x 3 years x 6 months (120 528 of 121 000). Files: `<pl|sl>/<years>_<months>_<i>.grib`, `i` the
+    variable group, e.g. `pl/2017_01-03_0.grib`, `sl/2005-2007_04-06_0.grib`, `pl/2010_07+09_1.grib`.
+    """
+    out: Jobs = {}
+    for block in _to_blocks(times):
+        for name, job in _make_block_plan(block, area, variables).items():
+            if out.get(name, job) != job:
+                raise ValueError(f"two blocks plan {name} with other requests (other hours of day?)")
+            out.setdefault(name, job)
+    return out
+
+
 def download(
-    times,
+    times: Times,
     area: Area,
-    root: str | pathlib.Path,
+    root: str | os.PathLike,
     *,
-    variables: list[str] = era5.VARIABLES,
+    variables: Sequence[str] = era5.VARIABLES,
     max_active: int = 8,
     poll: float = 30,
-) -> None:
+    retries: int = 3,
+) -> Jobs:
     """Download ERA5 over `area` for every day of the months of `times`, at their hours of day (UTC), to `root`.
 
-    The requests (`_make_jobs`) are added to the plan in `root/jobs.json`; a file of the plan with another request
-    (e.g. another area) raises: one `root` per area and variables. Files that exist are skipped, so `download` resumes
-    after a stop (`_retrieve`).
+    The requests (`make_jobs`; blocks of `times` in their order) are added to the plan in `root/jobs.json`; a file of
+    the plan with another request (e.g. another area) raises: one `root` per area and variables. At most `max_active`
+    requests are queued or running at the CDS at a time, across blocks. Files that exist are skipped, so `download`
+    resumes after a stop; failed requests and failed downloads are tried again up to `retries` times (`_retrieve`).
+    Returns the jobs of this call.
     """
     root = pathlib.Path(root)
-    times = pd.DatetimeIndex(times)
-    jobs = _make_jobs(set(times.to_period("M")), area, variables, sorted(set(times.hour)))
-    jobs = json.loads(json.dumps(jobs))  # as stored: lists
+    jobs = make_jobs(times, area, variables=variables)
+    stored = json.loads(json.dumps(jobs))  # as stored: lists
     plan_file = root / "jobs.json"
     plan = json.loads(plan_file.read_text()) if plan_file.exists() else {}
-    if conflict := [n for n in jobs if n in plan and plan[n] != jobs[n]]:
+    if conflict := [n for n in stored if n in plan and plan[n] != stored[n]]:
         raise ValueError(f"{root} holds other requests for {conflict[:3]}: use one root per area and variables")
     root.mkdir(parents=True, exist_ok=True)
-    plan_file.write_text(json.dumps(plan | jobs, indent=1))
-    _retrieve(jobs, root, max_active=max_active, poll=poll)
+    plan_file.write_text(json.dumps(plan | stored, indent=1))
+    _retrieve(jobs, root, max_active=max_active, poll=poll, retries=retries)
+    return jobs
 
 
-def fetch(times, where: Where, root: str | pathlib.Path) -> xr.Dataset:
+def fetch(times: pd.DatetimeIndex, where: Where, root: str | os.PathLike) -> xr.Dataset:
     """ERA5 at `times` in an `Area` or at `Points` (`otprof.sources`) from the files `download` wrote to `root`, in
     ARCO names, units and layout (as `era5.fetch`). The forecast fields of the CDS (accumulations, means, friction
     velocity) are put on their validity times."""
     root = pathlib.Path(root)
     if not (root / "jobs.json").exists():
         raise ValueError(f"{root}: no jobs.json, download first")
-    jobs = json.loads((root / "jobs.json").read_text())
+    jobs = {name: Job(*job) for name, job in json.loads((root / "jobs.json").read_text()).items()}
     times = pd.DatetimeIndex(times)
     parts = []
     for month in sorted(set(times.to_period("M"))):
         requests = {
-            root / name: (dataset, request)
-            for name, (dataset, request) in jobs.items()
-            if str(month.year) in request["year"] and f"{month.month:02d}" in request["month"]
+            root / name: job
+            for name, job in jobs.items()
+            if str(month.year) in job.request["year"] and f"{month.month:02d}" in job.request["month"]
         }
         if not requests:
             raise ValueError(f"{month} was not downloaded to {root}")
         if missing := [f for f in requests if not f.exists()]:
             raise ValueError(f"{len(missing)} files of {month} missing in {root} (e.g. {missing[0]}): download again")
         in_month = times[times.to_period("M") == month]
-        for path, (_, request) in requests.items():
-            if lacking := set(in_month.hour) - {int(t[:2]) for t in request["time"]}:
+        for path, job in requests.items():
+            if lacking := set(in_month.hour) - {int(t[:2]) for t in job.request["time"]}:
                 raise ValueError(f"{path}: hours {sorted(lacking)} of {month} were not downloaded")
-        parts.append(open_grib({path: dataset for path, (dataset, _) in requests.items()}, in_month))
+        parts.append(open_grib({path: job.dataset for path, job in requests.items()}, in_month))
     ds = xr.concat(parts, "time") if len(parts) > 1 else parts[0]
     return select(ds, where, lat="latitude", lon="longitude")
 
 
-def load(times, where: Where, root: str | pathlib.Path) -> xr.Dataset:
+def load(times: pd.DatetimeIndex, where: Where, root: str | os.PathLike) -> xr.Dataset:
     """ERA5 at `times` in an `Area` or at `Points` from `root` as canonical inputs: `standardize(fetch(...))`."""
     return standardize(fetch(times, where, root).load())
 
 
-def _make_jobs(
-    months: set[pd.Period], area: Area, variables: list[str], hours: Sequence[int]
-) -> dict[str, tuple[str, dict]]:
-    """CDS requests for `hours` (UTC) of every day of `months`.
+def _to_blocks(times: Times) -> list[pd.DatetimeIndex]:
+    """`times` as a list of blocks: one `DatetimeIndex` (or anything it takes) is one block."""
+    if isinstance(times, pd.DatetimeIndex):
+        return [times]
+    if len(times) and all(isinstance(t, pd.DatetimeIndex) for t in times):
+        return list(times)
+    return [pd.DatetimeIndex(times)]
 
-    Returns {file name: (dataset, request)}. A CDS request is the cross product of its variables, levels, years,
-    months, days and hours; each dataset gets the block of variables x years x months (`_choose_block`) that fills the cost
-    limit best, i.e. the fewest requests: e.g. hourly 1 pressure-level variable x 2 months (55 056 of 60 000 fields)
-    and 18 surface variables x 3 years x 3 months (120 528 of 121 000). Files: `<pl|sl>/<years>_<months>_<i>.grib`,
-    `i` the variable group.
-    """
-    years = sorted({m.year for m in months})
-    out = {}
+
+def _make_block_plan(times: pd.DatetimeIndex, area: Area, variables: Sequence[str]) -> Jobs:
+    """The requests of one block (`make_jobs`): its months, at its hours of day."""
+    hours = sorted(set(times.hour))
+    months_of_year: dict[int, tuple[int, ...]] = {}
+    for m in sorted(set(times.to_period("M"))):
+        months_of_year[m.year] = (*months_of_year.get(m.year, ()), m.month)
+    out: Jobs = {}
     for kind, dataset, names, extra in _split_by_dataset(variables):
         n_levels = len(extra.get("pressure_level", [0]))
-        _, ny, nm = _choose_block(len(names), n_levels * 31 * len(hours), COST_LIMIT[dataset], len(years))
         dataset_vars = [v for v in variables if v in (PL_NAMES if kind == "pl" else SL_NAMES).values()]
-        for y0 in range(0, len(years), ny):
-            for m0 in range(1, 13, nm):
-                block_years, block_months = years[y0 : y0 + ny], range(m0, min(m0 + nm, 13))
-                in_range = [(y, m) for y in block_years for m in block_months if pd.Period(f"{y}-{m}", "M") in months]
-                if len(in_range) == len(block_years) * len(block_months):
-                    products = [(block_years, list(block_months))]
-                else:  # block cut by start / end: one request per year, with its months in range
-                    products = [(ys, [m for y, m in in_range if y == ys[0]]) for ys in ([y] for y in block_years)]
-                for ys, ms in products:
-                    if not ms:
-                        continue
-                    span = f"{ys[0]}" if len(ys) == 1 else f"{ys[0]}-{ys[-1]}"
-                    span += f"_{ms[0]:02d}" if len(ms) == 1 else f"_{ms[0]:02d}-{ms[-1]:02d}"
-                    out |= _make_block_jobs(span, ys, ms, area, dataset_vars, hours)
+        groups = _choose_groups(len(names), n_levels * 31 * len(hours), COST_LIMIT[dataset], months_of_year)
+        for years, months in groups:
+            name = f"{_format_span(years, 4)}_{_format_span(months, 2)}"
+            out |= _make_block_jobs(name, years, months, area, dataset_vars, hours)
     return out
 
 
 def _make_block_jobs(
-    name: str, years: Sequence[int], months: Sequence[int], area: Area, variables: list[str], hours: Sequence[int]
-) -> dict[str, tuple[str, dict]]:
-    """CDS requests for `hours` (UTC) of every day of the block `years` x `months` (e.g. [2017], [1, 2, 3]).
+    name: str, years: Sequence[int], months: Sequence[int], area: Area, variables: Sequence[str], hours: Sequence[int]
+) -> Jobs:
+    """CDS requests for `hours` (UTC) of every day of `years` x `months` (e.g. [2017], [1, 2, 3]).
 
     Per dataset, the variables are packed into as few requests as the cost limit allows, e.g. hourly for one month:
     4 pressure-level requests (2, 2, 2, 1 of the 7 variables) and 1 surface request. Files: `<pl|sl>/<name>_<i>.grib`,
-    `i` the variable group. Returns {file name: (dataset, request)}, as `_make_jobs`.
+    `i` the variable group.
     """
     common = _make_common_keys(area, hours)
-    out = {}
+    out: Jobs = {}
     for kind, dataset, names, extra in _split_by_dataset(variables):
-        n_levels = len(extra.get("pressure_level", [0]))
-        nv = COST_LIMIT[dataset] // (n_levels * 31 * len(hours) * len(years) * len(months))
+        nv = _count_vars_per_request(dataset, len(extra.get("pressure_level", [0])) * 31 * len(hours), years, months)
         if nv < 1:
-            raise ValueError(f"one variable of the block {name} exceeds the CDS limit of {COST_LIMIT[dataset]}")
+            raise ValueError(f"one variable of {name} exceeds the CDS limit of {COST_LIMIT[dataset]}")
         for i in range(0, len(names), nv):
-            request = {
+            request: Request = {
                 **common,
                 **extra,
                 "variable": names[i : i + nv],
                 "year": [str(y) for y in years],
                 "month": [f"{m:02d}" for m in months],
             }
-            out[f"{kind}/{name}_{i // nv}.grib"] = (dataset, request)
+            out[f"{kind}/{name}_{i // nv}.grib"] = Job(dataset, request)
     return out
+
+
+def _count_vars_per_request(dataset: str, fields_per_var_month: int, years: Sequence, months: Sequence) -> int:
+    """The most variables of `dataset` per request of `years` x `months` within the cost limit."""
+    return COST_LIMIT[dataset] // (fields_per_var_month * len(years) * len(months))
+
+
+def _format_span(values: Sequence[int], width: int) -> str:
+    """Years or months in a file name: `2017`, `2005-2007` (consecutive), `07+09` (not consecutive)."""
+    text = [f"{v:0{width}d}" for v in values]
+    if len(values) == 1:
+        return text[0]
+    if list(values) == list(range(values[0], values[-1] + 1)):
+        return f"{text[0]}-{text[-1]}"
+    return "+".join(text)
 
 
 def _make_common_keys(area: Area, hours: Sequence[int]) -> dict:
@@ -214,7 +270,7 @@ def _make_common_keys(area: Area, hours: Sequence[int]) -> dict:
     }
 
 
-def _split_by_dataset(variables: list[str]) -> list[tuple[str, str, list[str], dict]]:
+def _split_by_dataset(variables: Sequence[str]) -> list[tuple[str, str, list[str], dict]]:
     """(kind, dataset, CDS variable names, extra request keys) of the datasets `variables` (ARCO names) come from."""
     pl = [v for v in variables if v in PL_NAMES.values()]
     sl = [v for v in variables if v in SL_NAMES.values()]
@@ -228,30 +284,53 @@ def _split_by_dataset(variables: list[str]) -> list[tuple[str, str, list[str], d
     return [d for d in out if d[2]]
 
 
-def _choose_block(n_vars: int, fields_per_var_month: int, limit: int, n_years: int) -> tuple[int, int, int]:
-    """(variables, years, months) per request within `limit` fields with the fewest requests over `n_years` years."""
+def _choose_groups(
+    n_vars: int, fields_per_var_month: int, limit: int, months_of_year: dict[int, tuple[int, ...]]
+) -> list[tuple[list[int], list[int]]]:
+    """The (years, months) of the requests of one dataset with the fewest requests within `limit` fields.
+
+    Tries every number of years (`ny`) and months (`nm`) per request: years are grouped by `ny` in order, a group of
+    years with the same months is split into runs of `nm` of these months, a group with other months per year into
+    runs per year. Ties: fewer years per request (shorter files).
+    """
     best = None
-    for nv in range(1, n_vars + 1):
-        for ny in range(1, n_years + 1):
-            for nm in range(1, 13):
-                if nv * ny * nm * fields_per_var_month > limit:
-                    continue
-                n = -(-n_vars // nv) * -(-n_years // ny) * -(-12 // nm)
-                key = (n, ny, -nv)  # ties: fewer years per request (shorter files), then fewer variable groups
-                if best is None or key < best[0]:
-                    best = (key, (nv, ny, nm))
+    for ny in range(1, len(months_of_year) + 1):
+        for nm in range(1, 13):
+            if fields_per_var_month * ny * nm > limit:
+                continue
+            groups = _group_months(months_of_year, ny, nm)
+            n = sum(-(-n_vars // (limit // (fields_per_var_month * len(ys) * len(ms)))) for ys, ms in groups)
+            if best is None or (n, ny) < best[0]:
+                best = ((n, ny), groups)
     if best is None:
         raise ValueError(f"one variable-month ({fields_per_var_month} fields) exceeds the CDS limit of {limit}")
     return best[1]
 
 
-def _retrieve(jobs: dict[str, tuple[str, dict]], root: pathlib.Path, *, max_active: int = 8, poll: float = 30) -> None:
-    """Submit the `jobs` (from `_make_jobs`) to the CDS and download each result to `root / <file name>`.
+def _group_months(months_of_year: dict[int, tuple[int, ...]], ny: int, nm: int) -> list[tuple[list[int], list[int]]]:
+    """(years, months) of the requests: groups of `ny` years, runs of `nm` months (`_choose_groups`)."""
+    years = sorted(months_of_year)
+    out = []
+    for i in range(0, len(years), ny):
+        ys = years[i : i + ny]
+        if len({months_of_year[y] for y in ys}) == 1:
+            ms = months_of_year[ys[0]]
+            out += [(ys, list(ms[k : k + nm])) for k in range(0, len(ms), nm)]
+        else:  # the cross product would request months a year does not have: one request per year
+            out += [
+                ([y], list(months_of_year[y][k : k + nm])) for y in ys for k in range(0, len(months_of_year[y]), nm)
+            ]
+    return out
+
+
+def _retrieve(jobs: Jobs, root: pathlib.Path, *, max_active: int = 8, poll: float = 30, retries: int = 3) -> None:
+    """Submit the `jobs` to the CDS in their order and download each result to `root / <file name>`.
 
     At most `max_active` requests are queued or running at a time. Files that exist are skipped. The request ids are
     kept in `root / requests.json`, so a restart downloads the requests already submitted instead of queueing them
-    again. Failed requests are submitted again, up to 3 times. Progress: a bar over the requests, with the numbers
-    running and queued at the CDS and the GB downloaded.
+    again. Failed requests are submitted again and failed downloads (e.g. a truncated file) tried again, up to
+    `retries` times each. Progress: a bar over the requests, with the numbers running and queued at the CDS and the
+    GB downloaded.
     """
     import requests
     from ecmwf.datastores import Client
@@ -265,6 +344,12 @@ def _retrieve(jobs: dict[str, tuple[str, dict]], root: pathlib.Path, *, max_acti
     def save():
         state_file.parent.mkdir(parents=True, exist_ok=True)
         state_file.write_text(json.dumps(ids, indent=1))
+
+    def count_failure(name: str, reason: str) -> None:
+        failures[name] = failures.get(name, 0) + 1
+        if failures[name] > retries:
+            raise RuntimeError(f"{name}: failed {failures[name]} times, last: {reason}")
+        bar.write(f"{name}: {reason}, trying again")
 
     todo = [name for name in jobs if not (root / name).exists()]
     n_bytes = 0
@@ -284,7 +369,12 @@ def _retrieve(jobs: dict[str, tuple[str, dict]], root: pathlib.Path, *, max_acti
                 target = root / name
                 target.parent.mkdir(parents=True, exist_ok=True)
                 tmp = target.with_suffix(".tmp")
-                remote.download(str(tmp))
+                try:
+                    remote.download(str(tmp))
+                except (requests.RequestException, OSError, AssertionError) as e:  # multiurl: size mismatch
+                    tmp.unlink(missing_ok=True)
+                    count_failure(name, f"download of {ids[name]} failed ({e})")  # the result stays on the CDS
+                    continue
                 tmp.rename(target)
                 n_bytes += target.stat().st_size
                 todo.remove(name)
@@ -293,10 +383,7 @@ def _retrieve(jobs: dict[str, tuple[str, dict]], root: pathlib.Path, *, max_acti
             elif status in counts:
                 counts[status] += 1
             else:
-                failures[name] = failures.get(name, 0) + 1
-                if failures[name] > 3:
-                    raise RuntimeError(f"{name}: request failed 3 times, last status `{status}`")
-                bar.write(f"{name}: request {ids[name]} {status}, submitting again")
+                count_failure(name, f"request {ids[name]} {status}")
                 del ids[name]
         for name in [n for n in todo if n not in ids][: max(max_active - sum(counts.values()), 0)]:
             dataset, request = jobs[name]
@@ -310,7 +397,7 @@ def _retrieve(jobs: dict[str, tuple[str, dict]], root: pathlib.Path, *, max_acti
 
 
 def open_grib(files: dict[pathlib.Path, str], times) -> xr.Dataset:
-    """GRIB files from the CDS ({path: dataset}, requests as in `_make_jobs`) at `times`, in the ARCO layout: ARCO
+    """GRIB files from the CDS ({path: dataset}, requests as in `make_jobs`) at `times`, in the ARCO layout: ARCO
     names and units, dims (time, level, latitude, longitude), levels ascending, latitude descending, longitude 0..360."""
     parts = []
     for path, dataset in files.items():
