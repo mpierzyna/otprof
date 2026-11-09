@@ -13,27 +13,32 @@ dependencies = [
     "numpy>=2.0",
     "xarray>=2024.1",
     "pydantic>=2.0",
+    # Dataset files, experiment configs, output quantile mapping, WRF interpolation
+    "netcdf4>=1.6",
+    "pyyaml>=6",
+    "scipy>=1.11",
+    # ERA5 from the ARCO store
+    "gcsfs>=2024.1",
+    "zarr>=2.16",
+    # Network, weights, published models
+    "torch>=2.4",
+    "safetensors>=0.4",
+    "huggingface_hub>=0.20",
+    # Training: Lightning loop, TensorBoard logging with sample plots
+    "lightning>=2.4",
+    "tensorboardx>=2.6",
+    "matplotlib>=3.8",
 ]
 
 [project.optional-dependencies]
-# Building training data: ERA5 download, alignment with WRF, WRF adapter interpolation
+# Building training data with bulk ERA5 downloads from the CDS (otprof.sources.era5_cds)
 data = [
-    "scipy>=1.11",
-    "netcdf4>=1.6",
-    "gcsfs>=2024.1",
-    "zarr>=2.16",
     "dask>=2024.1",
-    "pyyaml>=6",
     "ecmwf-datastores-client>=0.4",
     "cfgrib>=0.9.15",
     "eccodes>=2.41",
     "eccodeslib>=2.50.0.33",
     "tqdm>=4.60",
-]
-# Loading and running models: the network, safetensors weights
-torch = [
-    "torch>=2.4",
-    "safetensors>=0.4",
 ]
 # GFS forecasts (otprof.sources.gfs, gfs_archive): GRIB decoding
 gfs = [
@@ -41,22 +46,11 @@ gfs = [
     "eccodes>=2.41",
     "eccodeslib>=2.50.0.33",
 ]
-# Downloading models from Hugging Face
-hub = [
-    "huggingface_hub>=0.20",
-]
-# Training: Lightning loop, TensorBoard logging with sample plots
-train = [
-    "otprof[torch]",
-    "lightning>=2.4",
-    "tensorboardx>=2.6",
-    "matplotlib>=3.8",
-]
 
 [dependency-groups]
 dev = [
     "pytest>=8",
-    "otprof[data,train,hub,gfs]",
+    "otprof[data,gfs]",
 ]
 
 [build-system]
@@ -79,8 +73,14 @@ commit = true
 tag = true
 tag_name = "v{new_version}"
 message = "Bump version: {current_version} → {new_version}"
-# uv.lock is regenerated instead of edited as text, so it also recovers if it was out of sync
-pre_commit_hooks = ["uv lock", "git add uv.lock"]
+
+# Edited as text: `uv lock` in a workspace checkout would update the workspace's lockfile, not this one
+[[tool.bumpversion.files]]
+filename = "uv.lock"
+regex = true
+search = '^name = "otprof"\nversion = "\d+\.\d+\.\d+"$'
+replace = """name = "otprof"
+version = "{new_version}\""""
 
 [[tool.bumpversion.files]]
 filename = "pyproject.toml"

@@ -5,7 +5,6 @@
 """WRF Cn2 output of otprof-wrf (`wrfout_aux_*_cn2.nc`, native variable names) → canonical inputs (`otprof.schema`).
 
 Used to build training data: the model learns from WRF on pressure levels and is applied to ERA5 (or GFS) inputs.
-Needs scipy (`otprof[data]`) for the pressure grid.
 """
 
 from __future__ import annotations

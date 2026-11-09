@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-"""Build a training dataset for a domain from WRF Cn2 output (otprof-wrf) and ERA5. Needs `otprof[data]`.
+"""Build a training dataset for a domain from WRF Cn2 output (otprof-wrf) and ERA5.
 
 Steps, as run by `examples/new_domain/` (each writes NetCDF that can be inspected):
 1. `get_wrf_times` → `otprof.sources.era5.fetch`: download ERA5 for the WRF time steps in the area of the domain

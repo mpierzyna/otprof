@@ -72,12 +72,12 @@ class ExperimentConfig(_Strict):
 
     @classmethod
     def from_yaml(cls, path: str | pathlib.Path) -> Self:
-        import yaml  # otprof[data]
+        import yaml
 
         return cls.model_validate(yaml.safe_load(pathlib.Path(path).read_text()))
 
     def to_yaml(self, path: str | pathlib.Path) -> None:
-        import yaml  # otprof[data]
+        import yaml
 
         pathlib.Path(path).write_text(yaml.safe_dump(self.model_dump(mode="json"), sort_keys=False))
 

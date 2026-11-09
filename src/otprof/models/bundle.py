@@ -4,7 +4,6 @@
 
 """Saving and loading networks without Lightning, for every model: `model.safetensors` (weights) and `config.json`
 (model name, format and versions, hyperparameters, variable order). Networks also load from Lightning checkpoints.
-Needs `otprof[torch]`.
 
 A saved network records the otprof version, the version of its model's inputs (`FEATURES_VERSION`) and of the
 canonical input schema; loading checks them against the installed otprof.
@@ -56,7 +55,7 @@ def check_versions(config: dict, current: dict[str, str], source: str = "model")
 def save_network(network: Network, out_dir: str | pathlib.Path, model: str, features_version: str, **meta) -> None:
     """`model.safetensors` and `config.json` of `network` (of model `model`); `meta` is added to the config (e.g. the
     variable order of inputs, forcings and targets)."""
-    from safetensors.torch import save_file  # otprof[torch]
+    from safetensors.torch import save_file
 
     out_dir = pathlib.Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -77,7 +76,7 @@ def load_network(
 ) -> tuple[Network, dict]:
     """The network saved by `save_network` in `model_dir` and its `config.json`. Raises if the model or format differ,
     or if the MAJOR version of the features or the input schema it was trained with differs from the installed ones."""
-    from safetensors.torch import load_file  # otprof[torch]
+    from safetensors.torch import load_file
 
     model_dir = pathlib.Path(model_dir)
     config = json.loads((model_dir / "config.json").read_text())

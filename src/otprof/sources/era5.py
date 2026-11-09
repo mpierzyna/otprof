@@ -4,8 +4,7 @@
 
 """ERA5 (pressure levels + surface) from the ARCO-ERA5 zarr store → canonical inputs (`otprof.schema`).
 
-- `fetch(times, where)`: ERA5 at the times in an `Area` or at `Points`, in ARCO names and units, lazily (needs
-  `otprof[data]`: gcsfs, zarr)
+- `fetch(times, where)`: ERA5 at the times in an `Area` or at `Points`, in ARCO names and units, lazily
 - `standardize(raw)`: → canonical inputs; `load(times, where)` = `standardize(fetch(...))`
 - `get_download_size(times)`: what a fetch downloads (the store keeps each time step of the globe in one piece)
 """
@@ -82,7 +81,7 @@ VARIABLES = [
 
 
 def open_store(times, variables: list[str] = VARIABLES) -> xr.Dataset:
-    """The ARCO-ERA5 store at `times`, lazily (global; needs `otprof[data]`: gcsfs, zarr)."""
+    """The ARCO-ERA5 store at `times`, lazily (global)."""
     full = xr.open_zarr(ARCO_URL, chunks=None, storage_options=dict(token="anon"))
     return full.sel(time=pd.DatetimeIndex(times))[variables]
 

@@ -42,14 +42,14 @@ class Config(ModelConfig):
 
 
 def get_network_class():
-    """`SqueezeformerHModel` (needs `otprof[torch]`)."""
+    """`SqueezeformerHModel`."""
     from otprof.models.sqf_h.model import SqueezeformerHModel
 
     return SqueezeformerHModel
 
 
 def get_lit_model(config, data_train, compile: bool = True):
-    """The Lightning module of an experiment config for the training `ProfileDataset` (needs `otprof[train]`)."""
+    """The Lightning module of an experiment config for the training `ProfileDataset`."""
     from otprof.models.sqf_h import lit
 
     return lit.get_lit_model(config, data_train, compile=compile)

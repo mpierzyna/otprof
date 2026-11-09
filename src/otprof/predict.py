@@ -13,8 +13,6 @@ The chain is the one of training and evaluation: `pipeline.forward_X` -> network
 target scaling and transforms, then the `post_y` steps, e.g. the output quantile mapping, if `oqm`). The pipeline is
 loaded without data. Evaluation uses the same `predict` on `pipeline.split("test", transform=False)` with the target
 heights as query heights.
-
-Needs `otprof[torch]` (and `otprof[hub]` to download from Hugging Face).
 """
 
 from __future__ import annotations
@@ -85,13 +83,13 @@ def load_model(
 ) -> Predictor:
     """Load a model for prediction from
     - a bundle directory (`config.json`, `model.safetensors`, `pipeline.json`, `steps.json`; see `otprof.export`),
-    - a Hugging Face repo id (downloaded at `revision`, needs `otprof[hub]`; the published models and their pinned
+    - a Hugging Face repo id (downloaded at `revision`; the published models and their pinned
       revisions are in their model packages, e.g. `otprof.models.sqf_h.HF_REPO_ID` / `HF_REVISION`), or
     - a training run directory (`config.yaml`, `data_pipeline/`, `checkpoints/`): the best checkpoint or `ckpt`.
     """
     path = pathlib.Path(path_or_repo_id)
     if not path.exists():
-        from huggingface_hub import snapshot_download  # otprof[hub]
+        from huggingface_hub import snapshot_download
 
         path = pathlib.Path(snapshot_download(str(path_or_repo_id), revision=revision))
 

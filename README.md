@@ -33,22 +33,19 @@ uv sync
 `uv.lock`. Everything in `examples/` and `paper/` then runs with `uv run`, e.g. `uv run python examples/train.py ...`,
 and `uv run pytest` runs the tests. Training needs a GPU; prediction runs on a CPU too.
 
-To use otprof in your own uv project instead, add it with the optional parts you need:
+To use otprof in your own uv project instead, add it to the project. This covers training and inference, including
+ERA5 from the ARCO store and the published model from Hugging Face:
 
 ```bash
-uv add "otprof[torch,hub] @ git+https://github.com/mpierzyna/otprof"
+uv add "otprof @ git+https://github.com/mpierzyna/otprof"
 ```
+
+Two optional parts add further data sources, e.g. `uv add "otprof[gfs] @ git+https://github.com/mpierzyna/otprof"`:
 
 | Optional part | For |
 |---|---|
-| `data` | building training data: ERA5 download, alignment with WRF, NetCDF / YAML files |
-| `torch` | loading and running models |
-| `hub` | downloading the published model from Hugging Face |
+| `data` | building training data with bulk ERA5 downloads from the CDS (`otprof.sources.era5_cds`) |
 | `gfs` | GFS forecasts (GRIB decoding with eccodes) |
-| `train` | training (Lightning, TensorBoard; includes `torch`) |
-
-Without optional parts, otprof only needs numpy, xarray and pydantic (the physics, the input schema and the data
-processing).
 
 ## Getting started
 
@@ -104,6 +101,9 @@ and experiments with `model: {name: my_model, ...}` train, export, load and pred
 (`tests/dummy_model` is a minimal example). A model developed elsewhere becomes part of otprof by moving its
 subpackage to `otprof.models` and adding it to `MODELS` there.
 
+
+## AI statement
+Claude Opus 5.5 (Anthropic, model ID `claude-opus-5-5`), used through Claude Code, assisted with the development of the code, documentation, and project configuration in this repository. The author has carefully reviewed all AI-assisted contributions.
 
 ## License
 Unless otherwise noted, the content of this repository is licensed under **GNU General Public License v3.0 or later** (see [`COPYING`](./COPYING)).
