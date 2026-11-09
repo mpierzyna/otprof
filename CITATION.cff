@@ -2,14 +2,14 @@ cff-version: 1.2.0
 message: "If you use this software, please cite both the software and the accompanying article (listed under references)"
 type: software
 title: "OTProf: Estimating High-Resolution Profiles of Optical Turbulence from Reanalysis Using Deep Learning"
-version: 0.2.3
+version: 0.2.4
 date-released: "2026-11-09"
 license: GPL-3.0-or-later
 repository-code: "https://github.com/mpierzyna/otprof"
 doi: 10.5281/zenodo.24084350
 identifiers:
   - type: url
-    value: "https://github.com/mpierzyna/otprof/tree/v0.2.3"
+    value: "https://github.com/mpierzyna/otprof/tree/v0.2.4"
     description: "Git tag of this release"
 authors:
   - family-names: Pierzyna
