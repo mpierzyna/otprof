@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Export a trained model to a bundle: one directory, safetensors + JSON only (no pickle), loadable with
 `otprof.predict.load_model` and publishable as a Hugging Face model repo.
 

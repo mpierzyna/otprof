@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+
+SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
 # Building a training dataset for a new domain
 
 These scripts turn WRF Cn2 simulations of a new domain into a training dataset. Each step is a small script

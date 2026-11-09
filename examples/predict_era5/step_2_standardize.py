@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Step 2: ERA5 in the canonical form of otprof → `data/era5_pl.nc`.
 
 `era5.standardize` converts names and units to the input schema of otprof (`otprof.schema`) and selects the 31

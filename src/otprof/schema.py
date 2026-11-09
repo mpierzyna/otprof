@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Canonical input dataset: what a source adapter (`otprof.sources`) delivers, what the dataset files hold and what the
 models compute their inputs from (e.g. `otprof.models.sqf_h.inputs.make_inputs`).
 

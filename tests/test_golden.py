@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Model inputs from a real ERA5 sample must not change unnoticed (see tests/data/make_golden.py)."""
 
 import pathlib

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Integrated optical turbulence parameters from Cn2 profiles (numpy and xarray versions).
 
 All parameters are computed for a wavelength of 1550 nm.

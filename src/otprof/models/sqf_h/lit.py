@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """SQF-H training: the Lightning module around `SqueezeformerHModel` (loss, metrics, optimizer, sample plots).
 
 `get_lit_model(config, data_train)` builds it from an experiment config and the training `ProfileDataset`. Checkpoints

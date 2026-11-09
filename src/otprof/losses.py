@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Losses and metrics of SQF-H training: `edist` (energy distance) and `ddz_loss` (vertical gradients).
 
 `otprof.models.sqf_h.lit` logs them as metrics; the training loss itself (RMSE + confidence error) is computed there.

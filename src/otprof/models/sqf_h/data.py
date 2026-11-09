@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """SQF-H data processing: the pipeline on the dataset files, target transforms and scalers, and the default split.
 
 `get_pipeline(data_root)` builds the pipeline on the dataset files of a domain for experiments with `model: {name:

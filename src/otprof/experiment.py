@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Experiments: one YAML file per experiment (`ExperimentConfig`) and the pipeline built from it (`Experiment`).
 
 The config only holds what belongs to the experiment: the model by name and its hyperparameters (`model:`, validated by

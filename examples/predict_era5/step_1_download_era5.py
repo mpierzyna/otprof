@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Step 1: download ERA5 for the times and area of `params.yaml` → `data/era5.nc`.
 
 ERA5 comes from the public ARCO-ERA5 store on Google Cloud (no account needed). The store keeps every time step for

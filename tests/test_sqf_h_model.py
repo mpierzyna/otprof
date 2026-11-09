@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """SQF-H network: underground tokens are masked, features are interpolated in physical height, and a column shifted
 up by underground tokens gives the same output (the failure of the non-height-aware SqueezeFormer)."""
 

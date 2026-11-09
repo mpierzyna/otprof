@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Step 2: GFS in the canonical form of otprof → `data/gfs_pl.nc`.
 
 `gfs.standardize` converts names and units to the input schema of otprof (`otprof.schema`) on the 31 pressure levels

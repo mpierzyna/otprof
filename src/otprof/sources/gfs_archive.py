@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """GFS forecasts of earlier years (before the AWS archive of `otprof.sources.gfs`, which starts in 2021) from the NCAR
 GDEX archive ds084.1 (NCEP GFS 0.25 deg, from 2015) as canonical inputs (`otprof.schema`), for hindcasts. Needs
 `otprof[gfs]` (cfgrib, eccodes).

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """SQF-H inputs: the features the model takes, how they are computed from the canonical input dataset
 (`otprof.schema`) and how they are scaled, and the target variables it adds (`lcn2`, `lz`).
 

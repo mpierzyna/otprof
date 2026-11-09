@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Step 5: WRF interpolated to the ERA5 pressure levels → `data/<domain>/4_inputs_interp/wrf_pl.nc`.
 
 These are the training inputs of the decoupled SQF-H: the model learns on WRF inputs that look like ERA5 and is

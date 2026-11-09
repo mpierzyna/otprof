@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Source adapters: data of one source -> the canonical inputs (`otprof.schema`).
 
 Download sources, all with the same functions:

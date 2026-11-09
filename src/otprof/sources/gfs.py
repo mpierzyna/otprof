@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """GFS forecasts (NCEP Global Forecast System, v16 and later, from 2021) from the NOAA archive on AWS
 (`noaa-gfs-bdp-pds`) as canonical inputs (`otprof.schema`). Needs `otprof[gfs]` (cfgrib, eccodes).
 

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Step 1: download ERA5 for the time steps of the WRF output → `data/<domain>/1_raw/era5.nc`.
 
 Every time step is downloaded for the whole globe and cut to the area, so this takes a while. Delete the file to

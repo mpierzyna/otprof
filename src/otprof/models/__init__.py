@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Models: one subpackage per model, holding everything that defines it. The generic code (experiments, training,
 prediction, export) finds a model by its name in `MODELS` and only uses the interface `ModelPackage`:
 

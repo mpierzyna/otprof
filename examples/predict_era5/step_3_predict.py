@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Step 3: predict Cn2 profiles → `data/X.nc` (model inputs) and `data/y.nc` (predictions).
 
 Downloads the published model from Hugging Face on first use (cached afterwards). The model computes its inputs from

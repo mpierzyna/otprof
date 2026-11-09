@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+
+SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
 # OTProf
 
 Vertical profiles of optical turbulence (the refractive index structure parameter Cn2) from reanalysis and forecast

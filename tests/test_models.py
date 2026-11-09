@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """A model outside otprof, added only through `otprof.models.MODELS`: configured, trained, exported, loaded and run
 by the generic code without changes to otprof."""
 

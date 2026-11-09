@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+
+SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
 # Predict Cn2 profiles from ERA5 with the published model
 
 Three small scripts, run one after the other. Each writes its result to `data/` as a NetCDF file you can open and

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # The production model: SQF-H trained on WRF interpolated to the ERA5 pressure levels, run on ERA5 (later GFS).
 #   uv run python examples/train.py examples/configs/wrf_pl_h.yaml --data-root <domain data dir>
 name: sqfh_wrfpl_wrf

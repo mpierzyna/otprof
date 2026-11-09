@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Processing steps between the model inputs (from the dataset files or at inference) and the model.
 
 A pipeline (`otprof.pipeline`) holds three ordered lists of steps: `pre_X` (inputs -> model), `pre_y` (targets <->

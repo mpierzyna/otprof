@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Step 3: standardize WRF (targets) and ERA5 (inputs) → `data/<domain>/3_targets/y_wrf_all.nc`, `3_inputs/era5_pl.nc`.
 
 - targets: WRF Cn2 and turbulence profiles on the model levels plus astroclimate parameters (r0, tau0, th0, lsi2)

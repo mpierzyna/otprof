@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """The common interface of the download sources: `Area`, `Points`, `select`, `select_like`."""
 
 import numpy as np

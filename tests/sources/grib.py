@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Small GRIB2 messages for the GFS tests: real GRIB encoding (eccodes samples) on tiny regular lat-lon grids."""
 
 from __future__ import annotations

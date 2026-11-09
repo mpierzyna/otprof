@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """otprof.sources.era5_cds without the CDS: request planning, the plan in `root/jobs.json`, reading checks."""
 
 import json

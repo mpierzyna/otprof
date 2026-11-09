@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # One entry per domain (= one WRF grid). Each step script takes the domain name as its only argument.
 domains:
   nl:

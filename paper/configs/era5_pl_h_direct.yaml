@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # ERA5-PL direct (paper appendix): SQF-H trained directly on ERA5 pressure-level inputs, no decoupling.
 name: sqfh_era5pl_wrf_direct
 data:

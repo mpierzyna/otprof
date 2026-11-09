@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """SQF-H: the height-aware SqueezeFormer of the paper (`inputs`: its inputs computed from the canonical input dataset,
 `data`: what it makes of the dataset files, `model`: the network, `lit`: its training). This module is its interface
 for the generic code (`otprof.models.ModelPackage`).

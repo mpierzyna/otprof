@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Step 2: pair each ERA5 grid point with the nearest WRF column, keep the common time steps
 → `data/<domain>/2_aligned/{era5,wrf}.nc`.
 

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # Ctl.: SQF-H on native WRF levels (inputs and outputs on the same terrain-following levels, all levels valid).
 # Upper bound of the stepwise decoupling in the paper; not an inference model (needs WRF inputs).
 name: sqfh_wrfnative_wrf

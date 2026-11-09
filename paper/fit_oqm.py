@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Output quantile mapping (oQM) of the paper: one monotone map of lcn2 for the whole column (sine-spaced quantiles),
 fitted on ERA5-driven predictions against WRF; r0 and lsi2 then follow from the mapped profile.
 

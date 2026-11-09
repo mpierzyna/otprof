@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+
+SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
 # Paper: reproducing the comparisons
 
 The settings and scripts behind the figures and tables of the paper (arXiv:2604.09346). They use otprof like any user

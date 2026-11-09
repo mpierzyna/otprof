@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Physics of optical turbulence: integrated parameters, surface-layer similarity, reference profiles and vertical
 grid utilities. Depends on numpy and xarray only.
 

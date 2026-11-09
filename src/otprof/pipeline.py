@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Data pipeline: loads inputs (X) and targets (y), splits them and owns the processing chain to and from the model.
 
 A pipeline is used for training and evaluation (X and y files, three required selectors). Inference does not load

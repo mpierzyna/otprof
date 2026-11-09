@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Building blocks for model inputs: physical quantities derived from the canonical input dataset (`otprof.schema`).
 
 Each model combines them into its own inputs (e.g. `otprof.models.sqf_h.inputs.make_inputs`).

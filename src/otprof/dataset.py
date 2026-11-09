@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Build a training dataset for a domain from WRF Cn2 output (otprof-wrf) and ERA5. Needs `otprof[data]`.
 
 Steps, as run by `examples/new_domain/` (each writes NetCDF that can be inspected):

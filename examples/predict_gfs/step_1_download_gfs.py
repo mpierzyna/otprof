@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Step 1: download the GFS forecast of `params.yaml` at the locations → `data/gfs.nc`.
 
 GFS comes from the NOAA archive on AWS (no account needed). Only the needed fields are downloaded (global fields,

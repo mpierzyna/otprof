@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Shared by the step scripts: data directory and parameters of a domain (`params.yaml`)."""
 
 import argparse

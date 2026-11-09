@@ -1,28 +1,28 @@
+# SPDX-FileCopyrightText: 2024 Ron Shlomo
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# This file is derived from the Kaggle notebook "LEAP: Training 1" by Ron Shlomo (greySnow): 
+# https://www.kaggle.com/code/shlomoron/leap-training-1?scriptVersionId=188874411.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Modifications by Maximilian Pierzyna, 2026:
+# - Converted Tensorflow code to PyTorch
+# - Added underground masking, latent-space height interpolation, and query height embedding
+
 """SQF-H: the height-aware SqueezeFormer (plain `nn.Module`, no Lightning).
-
-SPDX-FileCopyrightText: 2024 Ron Shlomo
-SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
-
-SPDX-License-Identifier: Apache-2.0
-
-This file is derived from the Kaggle notebook "LEAP: Training 1" by Ron Shlomo (greySnow): 
-https://www.kaggle.com/code/shlomoron/leap-training-1?scriptVersionId=188874411.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
-Modifications by Maximilian Pierzyna, 2026:
-- Converted Tensorflow code to PyTorch
-- Added underground masking, latent-space height interpolation, and query height embedding
 
 Trained with `otprof.models.sqf_h.lit`; saved and loaded without Lightning by `otprof.models.bundle`.
 """

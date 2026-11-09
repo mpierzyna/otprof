@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """HV+W71 baseline of the paper: Hufnagel-Valley Cn2 profile scaled to the Walters (1971) surface value.
 
 The surface Cn2 comes from the W71 surface CT2 of the inputs (`lct2_w71f`) with the pressure of the lowest input level

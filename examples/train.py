@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Train a model from an experiment config.
 
     uv run python examples/train.py examples/configs/wrf_pl_h.yaml --data-root <domain data dir>

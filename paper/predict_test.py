@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Predict the test samples of an experiment with a trained model, for the evaluation of the paper.
 
     uv run python paper/predict_test.py paper/configs/wrf_pl_h.yaml --model <bundle or run dir> \\

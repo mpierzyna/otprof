@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Saving and loading networks without Lightning, for every model: `model.safetensors` (weights) and `config.json`
 (model name, format and versions, hyperparameters, variable order). Networks also load from Lightning checkpoints.
 Needs `otprof[torch]`.

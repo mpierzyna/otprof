@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Regenerate the golden model inputs after a deliberate change of the values (bump
 `otprof.models.sqf_h.inputs.FEATURES_VERSION` first: MAJOR, or MINOR for a small change shown not to need retraining):
 

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Prediction: a trained model with its processing chain (`Predictor`), loaded from a bundle, the hub or a training run,
 and `predict` on the model inputs.
 

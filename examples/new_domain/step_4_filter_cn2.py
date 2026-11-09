@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Step 4: mask implausible Cn2 profiles and astroclimate values → `data/<domain>/3_targets/y_wrf.nc`."""
 
 import xarray as xr

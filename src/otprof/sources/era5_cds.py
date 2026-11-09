@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """ERA5 (pressure levels + surface) from the Copernicus Climate Data Store (CDS), for long time series.
 
 ARCO-ERA5 (`otprof.sources.era5`) stores one global chunk per time step, so long time series over a small area

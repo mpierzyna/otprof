@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Smoke test: the new-domain example steps 2-5 run end to end on a tiny synthetic domain."""
 
 import shutil

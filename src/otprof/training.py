@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Training: torch dataset and loaders of an experiment, and the Lightning training loop.
 
     exp = Experiment.from_config("examples/configs/wrf_pl_h.yaml", data_root=...).setup()

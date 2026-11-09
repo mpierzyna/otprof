@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """otprof.sources.gfs_archive on a GFS-like archive file of small real GRIB2 messages."""
 
 import numpy as np

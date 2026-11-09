@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Maximilian Pierzyna
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """A second model outside otprof, as research would write one (`otprof.models.ModelPackage`): own inputs (a subset of
 the SQF-H inputs), own pipeline, a tiny network and its Lightning module. Used by `tests/test_models.py`."""
 
