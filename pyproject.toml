@@ -71,3 +71,38 @@ line-length = 120
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+# Release: `uvx bump-my-version bump patch|minor|major` updates the files below, commits and tags
+[tool.bumpversion]
+current_version = "0.2.3"
+commit = true
+tag = true
+tag_name = "v{new_version}"
+message = "Bump version: {current_version} → {new_version}"
+# uv.lock is regenerated instead of edited as text, so it also recovers if it was out of sync
+pre_commit_hooks = ["uv lock", "git add uv.lock"]
+
+[[tool.bumpversion.files]]
+filename = "pyproject.toml"
+search = """
+name = "otprof"
+version = "{current_version}"
+"""
+replace = """
+name = "otprof"
+version = "{new_version}"
+"""
+
+# The software's version and release date only, not the versions of its references
+[[tool.bumpversion.files]]
+filename = "CITATION.cff"
+regex = true
+search = '^version: {current_version}\ndate-released: "\d{{4}}-\d{{2}}-\d{{2}}"$'
+replace = """version: {new_version}
+date-released: "{now:%Y-%m-%d}\""""
+
+# Zenodo DOIs and the Zenodo citation in README.md are static on purpose and not bumped
+[[tool.bumpversion.files]]
+filename = "CITATION.cff"
+search = "/tree/v{current_version}"
+replace = "/tree/v{new_version}"
