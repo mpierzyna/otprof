@@ -1,7 +1,7 @@
 version = 1
 
 [[annotations]]
-path = ["**/*.yaml", ".gitignore", "pyproject.toml", "uv.lock"]
+path = ["**/*.yaml", ".gitignore", "pyproject.toml", "uv.lock", "CITATION.cff"]
 SPDX-FileCopyrightText = "2026 Maximilian Pierzyna"
 SPDX-License-Identifier = "GPL-3.0-or-later"
 

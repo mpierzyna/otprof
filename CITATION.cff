@@ -1,0 +1,56 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite both the software and the accompanying article (listed under references)"
+type: software
+title: "OTProf: Estimating High-Resolution Profiles of Optical Turbulence from Reanalysis Using Deep Learning"
+version: 0.2.3
+date-released: "2026-11-09"
+license: GPL-3.0-or-later
+repository-code: "https://github.com/mpierzyna/otprof"
+doi: 10.5281/zenodo.24084350
+authors:
+  - family-names: Pierzyna
+    given-names: Maximilian
+    orcid: "https://orcid.org/0000-0002-0596-8374"
+    affiliation: "Technische Universiteit Delft"
+
+references:
+  - type: article
+    title: "OTProf: estimating high-resolution profiles of optical turbulence ($C_n^2$) from reanalysis using deep learning"
+    authors:
+      - family-names: Pierzyna
+        given-names: Maximilian
+        orcid: "https://orcid.org/0000-0002-0596-8374"
+      - family-names: Basu
+        given-names: Sukanta
+      - family-names: Saathof
+        given-names: Rudolf
+    status: preprint
+    year: 2026
+    month: 4
+    doi: 10.48550/arXiv.2604.09346
+    url: "https://arxiv.org/abs/2604.09346"
+    journal: "arXiv"
+  - type: data
+    title: "OTProf: Estimating High-Resolution Profiles of Optical Turbulence (Cn2) from Reanalysis Using Deep Learning"
+    authors:
+      - family-names: Pierzyna
+        given-names: Maximilian
+        orcid: "https://orcid.org/0000-0002-0596-8374"
+    version: 0.2.1
+    date-released: "2026-10-28"
+    year: 2026
+    month: 10
+    license: CC-BY-SA-4.0
+    doi: 10.5281/zenodo.23733024
+    publisher:
+      name: Zenodo
+  - type: software
+    title: "LEAP: Training 1"
+    authors:
+      - family-names: Shlomo
+        given-names: Ron
+        alias: greySnow
+    year: 2024
+    license: Apache-2.0
+    url: "https://www.kaggle.com/code/shlomoron/leap-training-1?scriptVersionId=188874411"
+    notes: "Kaggle notebook. The SQF-H model in src/otprof/models/sqf_h/model.py is derived from this work."

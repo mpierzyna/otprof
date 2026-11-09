@@ -6,10 +6,17 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 # OTProf
 
-Vertical profiles of optical turbulence (the refractive index structure parameter Cn2) from reanalysis and forecast
-data with deep learning. The model, SQF-H (height-aware SqueezeFormer), is trained on WRF simulations of Cn2 and
-predicts the Cn2 profile, the WRF MYNN turbulence quantities, the Fried parameter r0 and the scintillation index from
-ERA5 pressure-level data. Method and evaluation: [arXiv:2604.09346](https://arxiv.org/abs/2604.09346).
+Estimate high-resolution vertical profiles of optical turbulence, i.e., the refractive index structure parameter $C_n^2$, from reanalysis data.
+
+This repository is part of a set of repositories:
+- [`otprof`](https://github.com/mpierzyna/otprof) (**this repository**): Code to train a new OTProf model or run a pretrained model. A snapshot of this repository is available on Zenodo (DOI: 10.5281/zenodo.24084350). The weights of OTProf, pretrained on the Netherlands, are available on Hugging Face (https://huggingface.co/maxiimilian/otprof-sqfh).
+- [`otprof-wrf`](https://github.com/mpierzyna/otprof-wrf): Code to generate the WRF-based $C_n^2$ training data. The generated training dataset and a snapshot of the `otprof-wrf` code are available on Zenodo (DOI: 10.5281/zenodo.23733024).
+- [`otprof-ui`](https://github.com/mpierzyna/otprof-ui): Code of the web UI to show OTProf-based $C_n^2$ forecasts and climatology. Check it out at [**https://otprof.mpier.eu**](https://otprof.mpier.eu)!
+
+📝 The **article** presenting the method in detail and evaluating its performance is available on arXiv: [arXiv:2604.09346](https://arxiv.org/abs/2604.09346).
+Please refer to the [License](#license) and [How to cite](#how-to-cite) sections if you would like to use this software or its products for your own work.
+
+This software has been developed by [**Maximilian Pierzyna**](https://orcid.org/0000-0002-0596-8374), Technische Universiteit Delft.
 
 ## Setup
 
@@ -47,9 +54,9 @@ processing).
 
 | Folder | What it shows |
 |---|---|
-| [`examples/predict_era5`](examples/predict_era5/README.md) | Cn2 profiles for any region from ERA5 with the published model |
-| [`examples/predict_gfs`](examples/predict_gfs/README.md) | Cn2 profile forecasts at given locations from GFS with the published model |
-| [`examples/new_domain`](examples/new_domain/README.md) | building a training dataset from WRF Cn2 simulations of a new domain |
+| [`examples/predict_era5`](examples/predict_era5/README.md) | $C_n^2$ profiles for any region from ERA5 with the published model |
+| [`examples/predict_gfs`](examples/predict_gfs/README.md) | $C_n^2$ profile forecasts at given locations from GFS with the published model |
+| [`examples/new_domain`](examples/new_domain/README.md) | building a training dataset from WRF $C_n^2$ simulations of a new domain |
 | `examples/train.py`, `examples/configs` | training a model from an experiment config |
 | [`paper`](paper/README.md) | reproducing the experiments of the paper |
 
@@ -71,8 +78,8 @@ y = predict(predictor, X)                         # lcn2, QKE, TSQ, EL_PBL, r0, 
 | Module | Contents |
 |---|---|
 | `otprof.schema` | the canonical input dataset: names, units, pressure levels every data source is converted to |
-| `otprof.sources` | data sources with one interface (`load(times, where)`, `where` an `Area` or `Points`): `era5`, `era5_cds` (bulk downloads), `gfs` (forecasts), `gfs_archive`; `wrf` (WRF Cn2 output, training data) |
-| `otprof.dataset` | building a training dataset: alignment of ERA5 and WRF, targets, Cn2 filter |
+| `otprof.sources` | data sources with one interface (`load(times, where)`, `where` an `Area` or `Points`): `era5`, `era5_cds` (bulk downloads), `gfs` (forecasts), `gfs_archive`; `wrf` (WRF $C_n^2$ output, training data) |
+| `otprof.dataset` | building a training dataset: alignment of ERA5 and WRF, targets, $C_n^2$ filter |
 | `otprof.features` | building blocks of model inputs (potential temperature, wind, surface CT2, time features) |
 | `otprof.models` | one subpackage per model (`sqf_h`: its inputs, data processing, network and training module); saving and loading networks (`bundle`) |
 | `otprof.pipeline`, `otprof.transforms` | loading the dataset files, train / val / test split, scalers and transforms |
@@ -97,11 +104,32 @@ and experiments with `model: {name: my_model, ...}` train, export, load and pred
 (`tests/dummy_model` is a minimal example). A model developed elsewhere becomes part of otprof by moving its
 subpackage to `otprof.models` and adding it to `MODELS` there.
 
-## Citation
-
-The method and its evaluation: [arXiv:2604.09346](https://arxiv.org/abs/2604.09346). The training datasets (nl and
-canaries), the published model and a snapshot of this code: Zenodo [10.5281/zenodo.23733024](https://doi.org/10.5281/zenodo.23733024).
 
 ## License
+Unless otherwise noted, the content of this repository is licensed under **GNU General Public License v3.0 or later** (see [`COPYING`](./COPYING)).
 
-GPL-3.0, see `COPYING`.
+### Third-party code
+[`src/otprof/models/sqf_h/model.py`](src/otprof/models/sqf_h/model.py) is derived from the Kaggle notebook
+["LEAP: Training 1"](https://www.kaggle.com/code/shlomoron/leap-training-1?scriptVersionId=188874411) by Ron Shlomo, licensed under the Apache License 2.0. The file remains under Apache 2.0 (see `LICENSES/Apache-2.0.txt`); modifications by Maximilian Pierzyna are noted in the file header.
+
+## Copyright notice
+Technische Universiteit Delft hereby disclaims all copyright interest in the program "OTProf" written by the Author(s). Henri Werij, Faculty of Aerospace Engineering, Technische Universiteit Delft.
+
+© 2026, Maximilian Pierzyna (excluding third-party code listed above)
+
+## How to cite
+When using OTProf, please cite this **code repository** and the **related article**. You can do so either using the `./CITATION.cff` file or by using the following information:
+
+### Code repository
+
+> Pierzyna, M. (2026). *OTProf: Estimating High-Resolution Profiles of Optical Turbulence from Reanalysis Using Deep Learning* (Version 0.2.3) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.24084350
+
+### Article
+
+> Pierzyna, M., Basu, S., & Saathof, R. (2026). OTProf: estimating high-resolution profiles of optical turbulence ($C_n^2$) from reanalysis using deep learning. *arXiv preprint* arXiv:2604.09346. https://doi.org/10.48550/arXiv.2604.09346
+
+### Training dataset
+
+Our training dataset is licensed under CC-BY-SA-4.0, so you may reuse it for your own work given that you attribute the original author as follows.
+
+> Pierzyna, M. (2026). *OTProf: Estimating High-Resolution Profiles of Optical Turbulence (Cn2) from Reanalysis Using Deep Learning* (Version 0.2.1) [Dataset]. Zenodo. https://doi.org/10.5281/zenodo.23733024
