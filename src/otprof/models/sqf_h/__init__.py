@@ -25,7 +25,7 @@ from otprof.models.sqf_h.inputs import FEATURES_VERSION
 
 HF_REPO_ID = "maxiimilian/otprof-sqfh"
 # Commit of the repo this otprof version uses, so a model update never changes the results of an installed version.
-HF_REVISION: str | None = "8c8af10e1e2cac0d4101742e132d1bef93b93975"
+HF_REVISION: str | None = "cbc7625c0947c7fc02988e070d4338fdff699c2a"
 
 
 class Config(ModelConfig):

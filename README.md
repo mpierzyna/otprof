@@ -122,7 +122,7 @@ When using OTProf, please cite this **code repository** and the **related articl
 
 ### Code repository
 
-> Pierzyna, M. (2026). *OTProf: Estimating High-Resolution Profiles of Optical Turbulence from Reanalysis Using Deep Learning* (Version 0.2.3) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.24084350
+> Pierzyna, M. (2026). *OTProf: Estimating High-Resolution Profiles of Optical Turbulence from Reanalysis Using Deep Learning* (Version 0.2.5) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.24084350
 
 ### Article
 
